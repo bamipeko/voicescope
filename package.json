@@ -1,6 +1,6 @@
 {
   "name": "voicescope",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -40,19 +40,7 @@
     "directories": {
       "output": "dist-electron"
     },
-    "asar": true,
-    "asarUnpack": [
-      "server/**/*",
-      "node_modules/sql.js/**/*",
-      "node_modules/@deepgram/**/*",
-      "node_modules/openai/**/*",
-      "node_modules/@google/**/*",
-      "node_modules/dotenv/**/*",
-      "node_modules/express/**/*",
-      "node_modules/cors/**/*",
-      "node_modules/multer/**/*",
-      "node_modules/uuid/**/*"
-    ],
+    "asar": false,
     "files": [
       "electron/**/*.cjs",
       "electron/assets/**/*",

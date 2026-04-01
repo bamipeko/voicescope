@@ -15,17 +15,10 @@ async function startServer() {
   // Determine paths
   const isPackaged = app.isPackaged;
 
-  // In packaged app, files are in app.asar but we use asarUnpack for server/
-  // so the actual path is app.asar.unpacked/server/
-  let appPath;
-  if (isPackaged) {
-    // Try unpacked path first (asarUnpack), fall back to asar path
-    const unpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked');
-    const asarPath = path.join(process.resourcesPath, 'app.asar');
-    appPath = fs.existsSync(path.join(unpackedPath, 'server')) ? unpackedPath : asarPath;
-  } else {
-    appPath = path.join(__dirname, '..');
-  }
+  // With asar disabled, packaged files are at resources/app/
+  const appPath = isPackaged
+    ? path.join(process.resourcesPath, 'app')
+    : path.join(__dirname, '..');
 
   // Use CJS wrapper in packaged mode (ELECTRON_RUN_AS_NODE doesn't respect "type": "module")
   const serverEntry = isPackaged
