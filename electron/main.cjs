@@ -1,10 +1,10 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, session } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, session, dialog } = require('electron');
 const path = require('path');
 const { startServer, stopServer } = require('./server-manager.cjs');
 const { initStore } = require('./store-manager.cjs');
 const { createTray, destroyTray, setRecordingState } = require('./tray-manager.cjs');
 
-// Disable GPU if running over network drive or in headless environments
+// Disable GPU sandbox (fixes issues on some environments)
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 
 // Single instance lock
@@ -30,12 +30,29 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    // Dark title bar on Windows
     titleBarStyle: 'default',
     autoHideMenuBar: true,
+    show: false, // Don't show until ready
   });
 
+  // Show loading page first, then load app when server is confirmed
   mainWindow.loadURL(`http://localhost:${serverPort}`);
+
+  // Retry loading if server isn't ready yet
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.log(`[Electron] Page load failed (${errorCode}), retrying in 1s...`);
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(`http://localhost:${serverPort}`);
+      }
+    }, 1000);
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -52,16 +69,13 @@ function createWindow() {
 
 // Handle desktopCapturer for system audio (no dialog)
 function setupAudioCapture() {
-  // Allow getDisplayMedia to capture system audio without picker dialog
   session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-    // Grant system audio loopback automatically
     callback({ audio: 'loopback' });
   });
 }
 
 // IPC handlers
 function setupIPC() {
-  // Get stored settings (API keys, preferences)
   ipcMain.handle('store:get', (event, key) => {
     const Store = require('./store-manager.cjs');
     return Store.get(key);
@@ -72,16 +86,13 @@ function setupIPC() {
     Store.set(key, value);
   });
 
-  // Check if running in Electron
   ipcMain.handle('app:isElectron', () => true);
 
-  // Get app info
   ipcMain.handle('app:info', () => ({
     version: app.getVersion(),
     dataPath: app.getPath('userData'),
   }));
 
-  // Recording state for tray icon
   ipcMain.on('recording:start', () => {
     setRecordingState(true);
   });
@@ -90,7 +101,6 @@ function setupIPC() {
     setRecordingState(false);
   });
 
-  // Show window
   ipcMain.on('window:show', () => {
     if (mainWindow) {
       mainWindow.show();
@@ -101,7 +111,6 @@ function setupIPC() {
 
 // Global shortcuts
 function registerShortcuts() {
-  // Ctrl+Shift+R to toggle recording
   globalShortcut.register('CommandOrControl+Shift+R', () => {
     if (mainWindow) {
       mainWindow.webContents.send('shortcut:toggle-recording');
@@ -114,13 +123,25 @@ app.whenReady().then(async () => {
   // Initialize electron-store
   initStore();
 
-  // Start embedded Express server
-  serverPort = await startServer();
-  console.log(`[Electron] Server started on port ${serverPort}`);
-
-  // Setup
+  // Setup IPC before window creation
   setupAudioCapture();
   setupIPC();
+
+  // Start embedded Express server
+  try {
+    serverPort = await startServer();
+    console.log(`[Electron] Server started on port ${serverPort}`);
+  } catch (err) {
+    console.error('[Electron] Server failed to start:', err);
+    dialog.showErrorBox(
+      'VoiceScope - サーバー起動エラー',
+      `サーバーの起動に失敗しました。\n\n${err.message}\n\nアプリを再インストールしてください。`
+    );
+    app.quit();
+    return;
+  }
+
+  // Create window and tray
   createWindow();
   createTray(mainWindow);
   registerShortcuts();
@@ -148,9 +169,7 @@ app.on('will-quit', () => {
 });
 
 app.on('window-all-closed', () => {
-  // Don't quit on macOS (standard behavior)
   if (process.platform !== 'darwin') {
-    // On Windows, we keep running in tray
-    // app.quit() is only called from tray "Quit"
+    // Keep running in tray on Windows
   }
 });

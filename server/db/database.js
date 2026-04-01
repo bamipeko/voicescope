@@ -12,7 +12,29 @@ const DB_PATH = path.resolve(DATA_DIR, 'voicescope.db');
 let db = null;
 
 export async function initDatabase() {
-  const SQL = await initSqlJs();
+  // Locate sql.js WASM binary - handle both normal and Electron asar-unpacked paths
+  let wasmUrl;
+  try {
+    const sqlJsDir = path.dirname(new URL(import.meta.resolve('sql.js')).pathname);
+    // On Windows, URL pathname starts with /C: — strip the leading /
+    const cleanDir = process.platform === 'win32' ? sqlJsDir.replace(/^\//, '') : sqlJsDir;
+    const wasmPath = path.join(cleanDir, 'sql-wasm.wasm');
+    if (fs.existsSync(wasmPath)) {
+      wasmUrl = wasmPath;
+    }
+    // Also check unpacked path for Electron
+    if (!wasmUrl) {
+      const unpackedPath = wasmPath.replace('app.asar', 'app.asar.unpacked');
+      if (fs.existsSync(unpackedPath)) {
+        wasmUrl = unpackedPath;
+      }
+    }
+  } catch (e) {
+    // Fallback: let sql.js find it automatically
+  }
+
+  const sqlOptions = wasmUrl ? { locateFile: () => wasmUrl } : {};
+  const SQL = await initSqlJs(sqlOptions);
 
   // Load existing DB or create new
   if (fs.existsSync(DB_PATH)) {
@@ -27,8 +49,12 @@ export async function initDatabase() {
   db.run('PRAGMA journal_mode = WAL');
   db.run('PRAGMA foreign_keys = ON');
 
-  // Run schema
-  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
+  // Run schema (handle asar.unpacked path)
+  let schemaPath = path.join(__dirname, 'schema.sql');
+  if (!fs.existsSync(schemaPath)) {
+    schemaPath = schemaPath.replace('app.asar', 'app.asar.unpacked');
+  }
+  const schema = fs.readFileSync(schemaPath, 'utf-8');
   db.run(schema);
 
   // Seed default templates
