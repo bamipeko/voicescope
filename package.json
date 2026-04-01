@@ -58,8 +58,11 @@
           ]
         }
       ],
-      "icon": "electron/assets/icon.ico"
+      "icon": "electron/assets/icon.ico",
+      "signingHashAlgorithms": null,
+      "sign": null
     },
+    "forceCodeSigning": false,
     "nsis": {
       "oneClick": false,
       "perMachine": false,

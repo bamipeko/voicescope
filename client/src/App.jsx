@@ -5,6 +5,7 @@ import RecordingDetail from './pages/RecordingDetail'
 import Templates from './pages/Templates'
 import Settings from './pages/Settings'
 import RecordButton from './components/RecordButton'
+import SetupWizard from './components/SetupWizard'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         </Routes>
       </Layout>
       <RecordButton />
+      <SetupWizard />
     </BrowserRouter>
   )
 }
