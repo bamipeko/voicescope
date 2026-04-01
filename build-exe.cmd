@@ -5,7 +5,9 @@ echo ========================================
 echo.
 
 set LOCAL_DIR=C:\projects\voicescope-build
+:: %~dp0 ends with \ which breaks quoted paths in robocopy
 set NAS_DIR=%~dp0
+if "%NAS_DIR:~-1%"=="\" set NAS_DIR=%NAS_DIR:~0,-1%
 
 echo [1/4] Syncing NAS to local...
 if not exist "%LOCAL_DIR%" mkdir "%LOCAL_DIR%"
@@ -14,9 +16,9 @@ echo.
 
 echo [2/4] Installing dependencies...
 cd /d "%LOCAL_DIR%"
-call npm install --no-audit --no-fund >nul 2>&1
-cd client
-call npm install --no-audit --no-fund >nul 2>&1
+call npm install --no-audit --no-fund
+cd /d "%LOCAL_DIR%\client"
+call npm install --no-audit --no-fund
 cd /d "%LOCAL_DIR%"
 echo.
 
