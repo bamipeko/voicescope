@@ -27,7 +27,10 @@ async function startServer() {
     appPath = path.join(__dirname, '..');
   }
 
-  const serverEntry = path.join(appPath, 'server', 'index.js');
+  // Use CJS wrapper in packaged mode (ELECTRON_RUN_AS_NODE doesn't respect "type": "module")
+  const serverEntry = isPackaged
+    ? path.join(appPath, 'server', 'start.cjs')
+    : path.join(appPath, 'server', 'index.js');
   const dataDir = path.join(app.getPath('userData'), 'data');
 
   console.log(`[ServerManager] isPackaged: ${isPackaged}`);
