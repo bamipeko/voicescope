@@ -42,7 +42,7 @@ if (process.env.NODE_ENV === 'production') {
 // Initialize DB then start server
 initDatabase().then(() => {
   app.listen(PORT, () => {
-    console.log(`VoiceScope server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);

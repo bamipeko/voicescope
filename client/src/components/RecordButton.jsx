@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRecorder } from '../hooks/useRecorder'
 import { uploadRecording } from '../lib/api'
 import { useAppStore } from '../stores/appStore'
@@ -25,6 +25,29 @@ export default function RecordButton() {
   const [uploading, setUploading] = useState(false)
   const addToast = useAppStore((s) => s.addToast)
   const navigate = useNavigate()
+
+  const handleToggle = useCallback(() => {
+    handleClick()
+  }, [isRecording])
+
+  // Listen for Electron global shortcut
+  useEffect(() => {
+    if (!window.electronAPI?.onToggleRecording) return
+    const cleanup = window.electronAPI.onToggleRecording(() => {
+      handleToggle()
+    })
+    return cleanup
+  }, [handleToggle])
+
+  // Notify Electron of recording state (for tray icon)
+  useEffect(() => {
+    if (!window.electronAPI) return
+    if (isRecording) {
+      window.electronAPI.notifyRecordingStart()
+    } else {
+      window.electronAPI.notifyRecordingStop()
+    }
+  }, [isRecording])
 
   const handleClick = async () => {
     if (isRecording) {

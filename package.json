@@ -1,8 +1,9 @@
 {
   "name": "voicescope",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
+  "main": "electron/main.cjs",
   "description": "Voice transcription & AI summary self-hosted app",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
@@ -10,18 +11,64 @@
     "dev:client": "cd client && npm run dev",
     "build": "cd client && npm run build",
     "start": "NODE_ENV=production node server/index.js",
-    "setup": "npm install && cd client && npm install"
+    "setup": "npm install && cd client && npm install",
+    "electron:dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npx electron .\"",
+    "electron:start": "npm run build && npx electron .",
+    "electron:build": "npm run build && npx electron-builder --win",
+    "electron:pack": "npm run build && npx electron-builder --dir"
   },
   "dependencies": {
     "@deepgram/sdk": "^3.9.0",
     "@google/generative-ai": "^0.21.0",
-    "sql.js": "^1.11.0",
     "concurrently": "^9.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "electron-store": "^8.2.0",
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
     "openai": "^4.77.0",
+    "sql.js": "^1.11.0",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.0"
+  },
+  "build": {
+    "appId": "com.voicescope.app",
+    "productName": "VoiceScope",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*.cjs",
+      "electron/assets/**/*",
+      "server/**/*",
+      "client/dist/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": [
+        "ja-JP",
+        "en-US"
+      ],
+      "language": "1041"
+    }
   }
 }
