@@ -1,7 +1,8 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 
 let serverProcess = null;
 
@@ -9,8 +10,52 @@ let serverProcess = null;
  * Start the Express server as a child process.
  * Uses spawn instead of fork to work with asar-packed apps.
  */
+/**
+ * Kill any existing process on the given port (Windows only).
+ */
+function killProcessOnPort(port) {
+  try {
+    const result = execSync(`netstat -ano | findstr :${port} | findstr LISTENING`, { encoding: 'utf-8' });
+    const lines = result.trim().split('\n');
+    for (const line of lines) {
+      const pid = line.trim().split(/\s+/).pop();
+      if (pid && pid !== '0') {
+        try {
+          execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+          console.log(`[ServerManager] Killed existing process on port ${port} (PID ${pid})`);
+        } catch (e) {
+          // Process may have already exited
+        }
+      }
+    }
+  } catch (e) {
+    // No process on port, that's fine
+  }
+}
+
+/**
+ * Check if a port is available.
+ */
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => { server.close(); resolve(true); });
+    server.listen(port);
+  });
+}
+
 async function startServer() {
   const port = 5100;
+
+  // Kill any leftover process from a previous crash
+  const available = await isPortAvailable(port);
+  if (!available) {
+    console.log(`[ServerManager] Port ${port} in use, killing existing process...`);
+    killProcessOnPort(port);
+    // Wait a moment for port to free up
+    await new Promise(r => setTimeout(r, 1000));
+  }
 
   // Determine paths
   const isPackaged = app.isPackaged;
