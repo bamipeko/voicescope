@@ -1,6 +1,102 @@
 @import "tailwindcss";
 
+@theme {
+  --color-card: #2d2d30;
+  --color-input: #3a3a3e;
+  --color-sidebar: #252528;
+  --color-base: #1e1e20;
+  --color-theme: #3a3a3e;
+  --color-theme-light: #505058;
+}
+
 body {
-  @apply bg-gray-950 text-gray-100;
+  @apply bg-base text-gray-100;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+}
+
+/* Markdown content styling (summary, chat, template preview) */
+.md-content {
+  color: #e5e7eb;
+  line-height: 1.7;
+}
+.md-content h1, .md-content h2, .md-content h3, .md-content h4 {
+  color: #ffffff;
+  font-weight: 600;
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  line-height: 1.3;
+}
+.md-content h1 { font-size: 1.4em; }
+.md-content h2 { font-size: 1.2em; }
+.md-content h3 { font-size: 1.05em; }
+.md-content h4 { font-size: 1em; }
+.md-content p { margin: 0.6em 0; }
+.md-content ul, .md-content ol {
+  margin: 0.6em 0;
+  padding-left: 1.6em;
+}
+.md-content ul { list-style: disc; }
+.md-content ol { list-style: decimal; }
+.md-content li { margin: 0.25em 0; }
+.md-content li > ul, .md-content li > ol { margin: 0.25em 0; }
+.md-content strong { color: #ffffff; font-weight: 600; }
+.md-content em { font-style: italic; }
+.md-content a { color: #60a5fa; text-decoration: underline; }
+.md-content a:hover { color: #93c5fd; }
+.md-content code {
+  background: rgba(255,255,255,0.08);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+.md-content pre {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #505058;
+  border-radius: 6px;
+  padding: 0.8em 1em;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.md-content pre code {
+  background: transparent;
+  padding: 0;
+}
+.md-content blockquote {
+  border-left: 3px solid #60a5fa;
+  padding-left: 1em;
+  color: #cbd5e1;
+  margin: 0.8em 0;
+}
+.md-content hr {
+  border: none;
+  border-top: 1px solid #505058;
+  margin: 1.2em 0;
+}
+
+/* Tables (GFM) */
+.md-content table {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  font-size: 0.92em;
+}
+.md-content thead {
+  background: rgba(255,255,255,0.06);
+}
+.md-content th, .md-content td {
+  border: 1px solid #505058;
+  padding: 0.5em 0.8em;
+  text-align: left;
+  vertical-align: top;
+}
+.md-content th {
+  color: #ffffff;
+  font-weight: 600;
+}
+.md-content tr:nth-child(even) {
+  background: rgba(255,255,255,0.025);
 }
