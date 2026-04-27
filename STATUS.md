@@ -21,29 +21,89 @@
 - [x] 文字起こしテキストのインライン編集
 - [x] テンプレートのテスト実行UI
 
-## Phase 2: Electron化 — 進行中 🔧
+## Phase 2: Electron化 — 完了 ✅
 
-### 完了
+### 完了項目
 - [x] Electronメインプロセス（main.cjs）
 - [x] Preloadスクリプト（contextBridge IPC）
-- [x] サーバーマネージャー（fork子プロセスでExpress起動）
+- [x] サーバーマネージャー（spawn子プロセスでExpress起動、ELECTRON_RUN_AS_NODE）
 - [x] Electron Store（APIキー暗号化保存）
+- [x] APIキーのランタイム更新（POST /api/settings/api-keys）
+- [x] セットアップウィザード（初回起動時APIキー設定フロー）
 - [x] システムトレイ（録音状態表示、コンテキストメニュー）
-- [x] グローバルショートカット（Ctrl+Shift+R で録音トグル）
-- [x] 会議アプリ検知モジュール（Zoom/Teams/Discord/Slack/Webex）
+- [x] グローバルショートカット（Ctrl+Shift+F8 で録音トグル）
+- [x] 会議アプリ検知モジュール（Zoom/Teams/Webex/Google Meet/Discord Voice）
 - [x] desktopCapturer API設定（ダイアログなしシステム音声）
-- [x] 設定画面のElectron対応（APIキー直接入力UI）
+- [x] 設定画面のElectron対応（APIキー直接入力UI、即時反映）
 - [x] 録音ボタンのElectron IPC連携（ショートカット＆トレイ同期）
-- [x] electron-builder設定（NSIS Windows .exe）
+- [x] electron-builder設定（NSIS Windows .exe、asar無効）
+- [x] ローディング画面（サーバー起動待機中に表示）
+- [x] .exeビルド＆パイプライン動作確認済み
+- [x] エラーバナー＆再処理ボタン（パイプラインエラー時の可視化）
+- [x] 要約のコピー＆Markdownエクスポート
+- [x] 文字起こしテキストのコピー
+- [x] 全体Markdownエクスポート（要約+文字起こし一括ダウンロード）
+- [x] 削除確認ダイアログ（ConfirmDialogコンポーネント）
+- [x] 話者ラベル編集（カラーバッジ、オートコンプリート付き）
+- [x] UIテーマ変更（グレーベース、フォント縮小、余白追加）
+- [x] 録音タイトル自動生成（LLMで文字起こし内容から生成）
+- [x] 録音モード選択（マイクのみ / マイク+デスクトップ音声）
+- [x] Google Meet検知（Chrome窓タイトルベース）
+- [x] Discord音声チャンネル検知（ローカルIPC RPC）
+- [x] 音声エクスポート先設定UI（フォルダ選択、自動コピー）
+- [x] Deepgram単語レベルセグメント分割（話者変更/休止/時間ベース）
+- [x] AI質問機能（単一録音チャット、会話履歴対応）
+- [x] ハイライト記録（Ctrl+Shift+Q / ★ボタン、文字起こしに黄色マーカー表示）
+- [x] 録音中テキストメモ（📝ボタンでタイムスタンプ付きメモ追加、文字起こしに表示）
+- [x] タスク抽出テンプレート（TODO/アクションアイテム/決定事項の自動抽出）
+- [x] 感情・トーン分析テンプレート（スタンス/感情変化/関係性の分析）
 
-### 未対応
-- [ ] .exeビルドテスト（ローカル環境でのビルド実行）
-- [ ] 初回セットアップウィザード（APIキー設定フロー）
-- [ ] 会議アプリ検知 → 自動録音開始のUI統合
+## Phase 3: ローカルモード — 完了 ✅
+
+### 完了項目
+- [x] Ollama対応（ローカルLLM要約プロバイダー、OpenAI互換API経由）
+- [x] faster-whisper対応（ローカル文字起こしエンジン、Pythonサブプロセス）
+- [x] Pythonワーカースクリプト（faster_whisper_worker.py、--check/--audio対応）
+- [x] ローカルサービス検出API（GET /api/local-status、Ollama/faster-whisper可用性チェック）
+- [x] 設定画面UI更新（ローカルサービスステータス表示、クラウド/ローカル切替、Whisperモデル選択、Ollamaモデル一覧）
+- [x] whisper.cpp対応（バイナリ自動ダウンロード、Pythonなしでローカル文字起こし）
+- [x] whisper.cppセットアップUI（ワンクリックでバイナリDL、モデルDLボタン）
+- [x] OllamaモデルPull UI（設定画面からモデル名入力→ダウンロード）
+- [x] ダウンロード進捗のリアルタイムポーリング表示
 
 ### LLMモデル設定（最新版）
 - Gemini: gemini-3.1-flash-lite-preview（デフォルト）
 - Grok: grok-4-1-fast-non-reasoning
 - OpenAI: gpt-5.4-nano
+- Ollama: ユーザーがpullしたモデルから選択
 
-## 最終更新: 2026-04-01
+### Whisperモデル設定
+- tiny / base（デフォルト）/ small / medium / large-v3
+
+## セキュリティ強化 — 完了 ✅
+
+### 完了項目
+- [x] CORS制限（localhostオリジンのみ許可）
+- [x] サーバーlocalhostバインド（127.0.0.1のみ）
+- [x] APIトークン認証（Electron起動時にランダム生成、全APIリクエストに付与）
+- [x] 暗号化キーのマシン固有化（ハードコード除去、既存データ自動移行）
+- [x] Markdownサニタイズ（rehype-sanitize導入、XSS防止）
+- [x] レート制限（express-rate-limit、AI系エンドポイント10回/分）
+- [x] エクスポートパスバリデーション（正規化+存在確認）
+- [x] 設定キーホワイトリスト（PATCH /api/settingsの不正キー拒否）
+- [x] DevTools制御（本番では--devフラグ時のみ有効）
+- [x] ファイル名UUID追加（タイムスタンプ衝突防止）
+- [x] disable-gpu-sandbox条件付き適用（--disable-gpu-sandboxフラグ時のみ）
+- [x] IPC store:get/set キーホワイトリスト（APIキー不正取得防止）
+- [x] Docker環境での /api/settings/api-keys 無効化（ELECTRON_MODE必須）
+- [x] Ollama URL localhost制限（SSRF防止）
+- [x] audioパストラバーサル防御（safeAudioPath関数）
+- [x] エラーメッセージから内部パス除去（ログのみに出力）
+- [x] Electronナビゲーション制限（外部リンクはデフォルトブラウザで開く）
+- [x] アップロードエンドポイントにレート制限（5回/分）
+- [x] limit/offsetパラメータのバリデーション（正の整数、上限200）
+- [x] electron-builder v25→v26.8.1 アップグレード（依存脆弱性解消）
+- [x] 旧暗号化キーのソース難読化（Base64化+TODO削除予定マーク）
+- [x] helmet導入（セキュリティヘッダー: CSP, X-Frame-Options, etc.）
+
+## 最終更新: 2026-04-03

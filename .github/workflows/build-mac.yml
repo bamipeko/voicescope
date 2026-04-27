@@ -1,0 +1,102 @@
+name: Build Mac DMG
+
+# このワークフローは GitHub のmacOSマシンで自動実行されます。
+# トリガー方法:
+#   1. mainブランチにpushされた時に自動
+#   2. v0.10.0 のようなバージョンタグがpushされた時 → DMGをReleaseに自動添付
+#   3. GitHub UI の Actions タブから「Run workflow」ボタンで手動実行（iPadでも可）
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+    paths:
+      - 'server/**'
+      - 'client/**'
+      - 'build/mac/**'
+      - 'scripts/build-mac.sh'
+      - 'package.json'
+      - '.github/workflows/build-mac.yml'
+  workflow_dispatch: # 手動実行を有効化（ボタンが出る）
+    inputs:
+      arch:
+        description: 'ビルドするアーキテクチャ'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - arm64
+          - x64
+
+jobs:
+  build:
+    name: Build VoiceScope.app + DMG
+    runs-on: macos-latest # Apple Silicon マシン (M系)
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+          cd client && (npm ci || npm install)
+
+      - name: Generate icon (.icns)
+        run: |
+          # CIランナーには icon.png がない場合、デフォルトを生成
+          if [ -f electron/assets/icon.png ]; then
+            ./scripts/make-icns.sh electron/assets/icon.png
+          else
+            echo "Warning: electron/assets/icon.png not found, skipping icon"
+          fi
+
+      - name: Build .app and .dmg
+        run: |
+          ARCH="${{ github.event.inputs.arch || 'both' }}"
+          bash scripts/build-mac.sh --arch "$ARCH"
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Upload DMG as workflow artifact (downloadable from Actions tab)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceScope-${{ steps.version.outputs.version }}-mac
+          path: dist-mac/*.dmg
+          retention-days: 30
+
+      - name: Upload .app as artifact (alternative download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceScope-${{ steps.version.outputs.version }}-app
+          path: dist-mac/VoiceScope.app
+          retention-days: 14
+
+      # タグ push (v0.10.0 など) の場合のみ、GitHub Releases に自動添付
+      - name: Attach DMG to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-mac/*.dmg
+          fail_on_unmatched_files: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

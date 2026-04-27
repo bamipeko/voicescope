@@ -1,0 +1,144 @@
+name: Build Windows
+
+# Produces two deliverables on every main push / tag / manual trigger:
+#   A) VoiceScope-Setup-x.y.z.exe      — traditional Electron installer (NSIS, ~180MB)
+#   B) VoiceScope-x.y.z.exe            — new single-exe portable (Bun + NSIS SFX, ~55MB)
+#
+# Both are uploaded as separate Artifacts. Tag pushes (v1.2.3) auto-attach
+# both to the GitHub Release so users can pick their preferred variant.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+    paths:
+      - 'server/**'
+      - 'client/**'
+      - 'electron/**'
+      - 'build/win/**'
+      - 'scripts/build-win-portable.ps1'
+      - 'package.json'
+      - '.github/workflows/build-win.yml'
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------------
+  # A) Electron installer (existing — kept for users who prefer the
+  #    native-app experience with tray, global shortcuts, Meet detect)
+  # ---------------------------------------------------------------
+  build-electron:
+    name: Build Electron Setup.exe
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client
+          npm ci
+
+      - name: Build client
+        run: npm run build
+
+      - name: Build Electron app
+        run: npx electron-builder --win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      - name: Upload Electron Setup.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceScope-${{ steps.version.outputs.version }}-win-setup
+          path: dist-electron/*Setup*.exe
+          retention-days: 30
+
+      - name: Attach Electron Setup.exe to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-electron/*Setup*.exe
+          fail_on_unmatched_files: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------
+  # B) Single-EXE portable (new — Bun-compiled server + NSIS SFX)
+  # ---------------------------------------------------------------
+  build-portable:
+    name: Build single-exe portable
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # NSIS is pre-installed on windows-latest runners (same version Electron Builder uses).
+      # Verify it's available for the PowerShell build script.
+      - name: Verify NSIS
+        shell: pwsh
+        run: |
+          $nsis = Get-Command makensis -ErrorAction SilentlyContinue
+          if (-not $nsis) {
+            choco install nsis -y --no-progress
+          }
+          makensis /VERSION
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client
+          npm ci
+
+      - name: Build single-exe portable
+        shell: pwsh
+        run: pwsh scripts/build-win-portable.ps1
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      - name: Upload single-exe portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceScope-${{ steps.version.outputs.version }}-win-portable
+          path: dist-win/VoiceScope-*.exe
+          retention-days: 30
+
+      - name: Attach single-exe portable to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-win/VoiceScope-*.exe
+          fail_on_unmatched_files: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

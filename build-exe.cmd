@@ -9,25 +9,53 @@ set LOCAL_DIR=C:\projects\voicescope-build
 set NAS_DIR=%~dp0
 if "%NAS_DIR:~-1%"=="\" set NAS_DIR=%NAS_DIR:~0,-1%
 
-echo [1/4] Syncing NAS to local...
+echo [1/5] Cleaning previous build artifacts...
+taskkill /F /IM VoiceScope.exe 2>nul
+taskkill /F /IM "VoiceScope Setup*.exe" 2>nul
+timeout /t 3 /nobreak >nul
+if exist "%LOCAL_DIR%\dist-electron" (
+    rmdir /s /q "%LOCAL_DIR%\dist-electron" 2>nul
+    if exist "%LOCAL_DIR%\dist-electron" (
+        echo    WARNING: dist-electron still locked, retrying...
+        timeout /t 5 /nobreak >nul
+        rmdir /s /q "%LOCAL_DIR%\dist-electron" 2>nul
+    )
+    if exist "%LOCAL_DIR%\dist-electron" (
+        echo    ERROR: Cannot delete dist-electron. Close any running VoiceScope and try again.
+        pause
+        exit /b 1
+    )
+)
+echo.
+
+echo [2/5] Syncing NAS to local...
 if not exist "%LOCAL_DIR%" mkdir "%LOCAL_DIR%"
 robocopy "%NAS_DIR%" "%LOCAL_DIR%" /MIR /XD node_modules client\node_modules dist-electron data .git /XF .env voicescope.db *.log /NFL /NDL /NJH /NJS /NC /NS
 echo.
 
-echo [2/4] Installing dependencies...
+echo [3/5] Installing dependencies (clean)...
 cd /d "%LOCAL_DIR%"
+:: Remove node_modules to ensure fresh install with updated deps
+if exist node_modules\helmet (echo    Root deps OK) else (
+    echo    Root deps outdated, reinstalling...
+    rmdir /s /q node_modules 2>nul
+)
 call npm install --no-audit --no-fund
 cd /d "%LOCAL_DIR%\client"
+if exist node_modules\rehype-sanitize (echo    Client deps OK) else (
+    echo    Client deps outdated, reinstalling...
+    rmdir /s /q node_modules 2>nul
+)
 call npm install --no-audit --no-fund
 cd /d "%LOCAL_DIR%"
 echo.
 
-echo [3/4] Building client + packaging .exe ...
+echo [4/5] Building client + packaging .exe ...
 echo (This may take a few minutes)
 call npm run electron:build
 echo.
 
-echo [4/4] Done!
+echo [5/5] Done!
 echo.
 dir /b "%LOCAL_DIR%\dist-electron\VoiceScope Setup*.exe" 2>nul
 if %ERRORLEVEL%==0 (

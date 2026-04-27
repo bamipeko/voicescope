@@ -1,0 +1,28 @@
+#!/bin/bash
+# VoiceScope macOS launcher — sets up env, starts embedded server.
+# This is the actual executable invoked by Launchpad / Finder when opening the .app.
+set -e
+
+# Resolve the .app bundle root (two levels up from this script)
+BUNDLE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+RESOURCES="$BUNDLE_ROOT/Resources"
+MACOS="$BUNDLE_ROOT/MacOS"
+
+# Ensure app-support dir exists (first-run)
+APP_DATA="$HOME/Library/Application Support/VoiceScope"
+mkdir -p "$APP_DATA/audio"
+
+# Logs go to ~/Library/Logs/VoiceScope/server.log for post-mortem debugging
+LOG_DIR="$HOME/Library/Logs/VoiceScope"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/server.log"
+
+# Export runtime hints for the server
+export VOICESCOPE_STANDALONE=1
+export VOICESCOPE_CLIENT_DIST="$RESOURCES/client"
+export VOICESCOPE_SQLJS_WASM="$RESOURCES/sql-wasm.wasm"
+export VOICESCOPE_SCHEMA_SQL="$RESOURCES/schema.sql"
+export NODE_ENV=production
+
+# Redirect stdout/stderr to the log file (keeps Console.app clean, aids debugging)
+exec "$MACOS/voicescope-server" >> "$LOG_FILE" 2>&1
