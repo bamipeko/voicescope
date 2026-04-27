@@ -1,33 +1,64 @@
 import { createClient } from '@deepgram/sdk';
 import fs from 'fs';
+import { isManagedMode } from '../managed.js';
 
 export async function transcribeWithDeepgram(audioPath, options = {}) {
-  const apiKey = process.env.DEEPGRAM_API_KEY;
-  if (!apiKey) {
-    throw new Error('DEEPGRAM_API_KEY が設定されていません');
-  }
-
-  const deepgram = createClient(apiKey);
   const audioBuffer = fs.readFileSync(audioPath);
-
-  // When language is 'auto', default to 'ja' instead of using detect_language
-  // because detect_language is not available on all Deepgram plans
   const language = (!options.language || options.language === 'auto') ? 'ja' : options.language;
 
-  const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-    audioBuffer,
-    {
+  const { managed, workerBaseURL, token } = isManagedMode('deepgram');
+
+  let result;
+
+  if (managed) {
+    // Managed mode: send audio to Worker proxy
+    const params = new URLSearchParams({
+      model: 'nova-2',
+      language,
+      smart_format: 'true',
+      diarize: options.diarize !== false ? 'true' : 'false',
+      punctuate: 'true',
+      utterances: 'true',
+    });
+
+    const resp = await fetch(`${workerBaseURL}/v1/transcribe?${params}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'audio/webm',
+      },
+      body: audioBuffer,
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`Deepgram proxy error: ${err.error || resp.statusText}`);
+    }
+
+    result = await resp.json();
+  } else {
+    // Direct mode: use Deepgram SDK
+    const apiKey = process.env.DEEPGRAM_API_KEY;
+    if (!apiKey) throw new Error('文字起こし用のAPIキーが設定されていません。設定画面でOpenAIまたはDeepgramのキーを設定するか、トライアルコードを入力してください。');
+
+    const deepgram = createClient(apiKey);
+
+    const dgOptions = {
       model: 'nova-2',
       language,
       smart_format: true,
       diarize: options.diarize !== false,
       punctuate: true,
       utterances: true,
-    }
-  );
+    };
 
-  if (error) {
-    throw new Error(`Deepgram API error: ${error.message}`);
+    if (options.keywords?.length > 0) {
+      dgOptions.keywords = options.keywords.map(w => `${w}:2`);
+    }
+
+    const dgResult = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, dgOptions);
+    if (dgResult.error) throw new Error(`Deepgram API error: ${dgResult.error.message}`);
+    result = dgResult.result;
   }
 
   const channel = result.results?.channels?.[0];
@@ -37,11 +68,38 @@ export async function transcribeWithDeepgram(audioPath, options = {}) {
     throw new Error('Deepgram returned no transcription results');
   }
 
-  // Build segments from utterances (includes speaker info)
+  // Build segments from word-level data for fine-grained timestamps.
+  // Deepgram's paragraphs.sentences can produce very long segments for Japanese,
+  // so we use words directly and split by speaker change, pauses, or max duration.
   const segments = [];
   const speakerSet = new Set();
 
-  if (alternatives.paragraphs?.paragraphs) {
+  const MAX_SEGMENT_SEC = 20; // Split segments longer than 20 seconds
+  const PAUSE_THRESHOLD = 1.5; // Split on pauses > 1.5 seconds
+
+  if (alternatives.words?.length > 0) {
+    let current = null;
+    for (const word of alternatives.words) {
+      const speakerId = `speaker_${word.speaker ?? 0}`;
+      const wordText = word.punctuated_word || word.word;
+      speakerSet.add(speakerId);
+
+      const shouldSplit = !current
+        || current.speaker !== speakerId
+        || (word.start - current.end) > PAUSE_THRESHOLD
+        || (word.start - current.start) > MAX_SEGMENT_SEC;
+
+      if (shouldSplit) {
+        if (current) segments.push(current);
+        current = { start: word.start, end: word.end, speaker: speakerId, text: wordText };
+      } else {
+        current.end = word.end;
+        current.text += ' ' + wordText;
+      }
+    }
+    if (current) segments.push(current);
+  } else if (alternatives.paragraphs?.paragraphs) {
+    // Fallback to paragraphs if no word data
     for (const para of alternatives.paragraphs.paragraphs) {
       for (const sentence of para.sentences) {
         const speakerId = `speaker_${para.speaker}`;
@@ -54,21 +112,6 @@ export async function transcribeWithDeepgram(audioPath, options = {}) {
         });
       }
     }
-  } else if (alternatives.words) {
-    // Fallback: group words into segments by speaker
-    let current = null;
-    for (const word of alternatives.words) {
-      const speakerId = `speaker_${word.speaker || 0}`;
-      speakerSet.add(speakerId);
-      if (!current || current.speaker !== speakerId) {
-        if (current) segments.push(current);
-        current = { start: word.start, end: word.end, speaker: speakerId, text: word.punctuated_word || word.word };
-      } else {
-        current.end = word.end;
-        current.text += ' ' + (word.punctuated_word || word.word);
-      }
-    }
-    if (current) segments.push(current);
   }
 
   const speakers = Array.from(speakerSet).map(id => ({ id, label: id }));

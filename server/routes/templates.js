@@ -7,11 +7,28 @@ const router = Router();
 // GET /api/templates
 router.get('/', (req, res) => {
   try {
-    const templates = queryAll('SELECT * FROM templates ORDER BY is_default DESC, name ASC');
+    const templates = queryAll('SELECT * FROM templates ORDER BY sort_order ASC, id ASC');
     res.json(templates);
   } catch (err) {
     console.error('Templates list error:', err);
     res.status(500).json({ error: 'テンプレート一覧の取得に失敗しました' });
+  }
+});
+
+// POST /api/templates/reorder — Reorder templates by id array
+router.post('/reorder', (req, res) => {
+  try {
+    const { order } = req.body; // array of template ids in desired order
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ error: 'order配列が必要です' });
+    }
+    order.forEach((id, index) => {
+      execute('UPDATE templates SET sort_order = ? WHERE id = ?', [index, id]);
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Template reorder error:', err);
+    res.status(500).json({ error: '並び替えに失敗しました' });
   }
 });
 
@@ -22,6 +39,9 @@ router.post('/', (req, res) => {
 
     if (!name || !system_prompt) {
       return res.status(400).json({ error: 'テンプレート名とプロンプトは必須です' });
+    }
+    if (system_prompt.length > 20000) {
+      return res.status(400).json({ error: 'プロンプトが長すぎます（20,000文字以内）' });
     }
 
     // If setting as default, unset others

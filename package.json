@@ -1,10 +1,14 @@
 {
   "name": "voicescope",
-  "version": "0.2.4",
+  "version": "0.14.1",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
   "description": "Voice transcription & AI summary self-hosted app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bamipeko/voicescope.git"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node --watch server/index.js",
@@ -15,9 +19,15 @@
     "electron:dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npx electron .\"",
     "electron:start": "npm run build && npx electron .",
     "electron:build": "npm run build && npx electron-builder --win",
-    "electron:pack": "npm run build && npx electron-builder --dir"
+    "electron:pack": "npm run build && npx electron-builder --dir",
+    "mac:build": "bash scripts/build-mac.sh",
+    "mac:build:arm64": "bash scripts/build-mac.sh --arch arm64",
+    "mac:build:x64": "bash scripts/build-mac.sh --arch x64",
+    "win:portable": "pwsh scripts/build-win-portable.ps1",
+    "standalone:start": "cross-env VOICESCOPE_STANDALONE=1 NODE_ENV=production node server/index.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
     "@deepgram/sdk": "^3.9.0",
     "@google/generative-ai": "^0.21.0",
     "concurrently": "^9.1.0",
@@ -25,14 +35,17 @@
     "dotenv": "^16.4.7",
     "electron-store": "^8.2.0",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.1.0",
     "multer": "^1.4.5-lts.1",
     "openai": "^4.77.0",
     "sql.js": "^1.11.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "electron": "^33.4.11",
-    "electron-builder": "^25.1.0"
+    "electron-builder": "^26.8.1"
   },
   "build": {
     "appId": "com.voicescope.app",
@@ -40,9 +53,16 @@
     "directories": {
       "output": "dist-electron"
     },
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "server/**/*",
+      "client/dist/**/*",
+      "node_modules/**/*",
+      "electron/assets/**/*"
+    ],
     "files": [
       "electron/**/*.cjs",
+      "electron/**/*.html",
       "electron/assets/**/*",
       "server/**/*",
       "client/dist/**/*",
@@ -58,9 +78,7 @@
           ]
         }
       ],
-      "icon": "electron/assets/icon.ico",
-      "signingHashAlgorithms": null,
-      "sign": null
+      "icon": "electron/assets/icon.ico"
     },
     "forceCodeSigning": false,
     "nsis": {

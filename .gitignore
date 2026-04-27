@@ -1,5 +1,7 @@
 node_modules/
 .env
+*.env
+*コピー*
 data/voicescope.db
 data/audio/
 dist/

@@ -2,18 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "voicescope-server",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["server/index.js"],
-      "port": 5100,
-      "cwd": "Z:/projects/voicescape"
-    },
-    {
-      "name": "voicescope-client",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--port", "5173"],
-      "port": 5173,
-      "cwd": "Z:/projects/voicescape/client"
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5100
     }
   ]
 }

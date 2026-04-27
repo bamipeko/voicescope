@@ -1,13 +1,18 @@
 import OpenAI from 'openai';
 import fs from 'fs';
+import { isManagedMode } from '../managed.js';
 
 export async function transcribeWithWhisper(audioPath, options = {}) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY が設定されていません');
-  }
+  const { managed, workerBaseURL, token } = isManagedMode('openai');
 
-  const openai = new OpenAI({ apiKey });
+  let openai;
+  if (managed) {
+    openai = new OpenAI({ apiKey: token, baseURL: `${workerBaseURL}/v1` });
+  } else {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error('文字起こし用のAPIキーが設定されていません。設定画面でOpenAIまたはDeepgramのキーを設定するか、トライアルコードを入力してください。');
+    openai = new OpenAI({ apiKey });
+  }
 
   const response = await openai.audio.transcriptions.create({
     file: fs.createReadStream(audioPath),

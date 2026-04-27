@@ -1,5 +1,5 @@
-import { summarize } from './summary/index.js';
 import { queryAll } from '../db/database.js';
+import { askLLM } from './ask.js';
 
 const TAG_PROMPT = `あなたはテキスト分析アシスタントです。以下の会話テキストに適切なタグを3〜5個提案してください。
 
@@ -21,18 +21,11 @@ export async function suggestTags(transcriptionText, options = {}) {
     prompt += `\n\n既存のタグ一覧（できるだけこの中から選んでください）:\n${existingTagNames.join(', ')}`;
   }
 
-  const provider = options.provider || 'gemini';
-  const model = options.model || 'gemini-3.1-flash-lite-preview';
-
-  // Use summary infrastructure with tag-specific prompt
-  const { summarizeWithGemini } = await import('./summary/gemini.js');
-  const { summarizeWithGrok } = await import('./summary/grok.js');
-  const { summarizeWithOpenAI } = await import('./summary/openai.js');
-
-  const providers = { gemini: summarizeWithGemini, grok: summarizeWithGrok, openai: summarizeWithOpenAI };
-  const fn = providers[provider] || summarizeWithGemini;
-
-  const result = await fn(transcriptionText, prompt, { model });
+  // Use askLLM which supports all providers including Ollama
+  const result = await askLLM(transcriptionText, prompt, {
+    provider: options.provider,
+    model: options.model,
+  });
 
   // Parse JSON array from response
   try {

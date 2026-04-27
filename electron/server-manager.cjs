@@ -14,15 +14,20 @@ let serverProcess = null;
  * Kill any existing process on the given port (Windows only).
  */
 function killProcessOnPort(port) {
+  // Validate port is a safe integer to prevent command injection
+  const portNum = parseInt(port, 10);
+  if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) return;
+
   try {
-    const result = execSync(`netstat -ano | findstr :${port} | findstr LISTENING`, { encoding: 'utf-8' });
+    const result = execSync(`netstat -ano | findstr :${portNum} | findstr LISTENING`, { encoding: 'utf-8' });
     const lines = result.trim().split('\n');
     for (const line of lines) {
       const pid = line.trim().split(/\s+/).pop();
-      if (pid && pid !== '0') {
+      // Validate PID is numeric only
+      if (pid && /^\d+$/.test(pid) && pid !== '0') {
         try {
           execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
-          console.log(`[ServerManager] Killed existing process on port ${port} (PID ${pid})`);
+          console.log(`[ServerManager] Killed existing process on port ${portNum} (PID ${pid})`);
         } catch (e) {
           // Process may have already exited
         }
@@ -45,7 +50,7 @@ function isPortAvailable(port) {
   });
 }
 
-async function startServer() {
+async function startServer(options = {}) {
   const port = 5100;
 
   // Kill any leftover process from a previous crash
@@ -60,9 +65,9 @@ async function startServer() {
   // Determine paths
   const isPackaged = app.isPackaged;
 
-  // With asar disabled, packaged files are at resources/app/
+  // With asar enabled, unpacked files are at resources/app.asar.unpacked/
   const appPath = isPackaged
-    ? path.join(process.resourcesPath, 'app')
+    ? path.join(process.resourcesPath, 'app.asar.unpacked')
     : path.join(__dirname, '..');
 
   // Use CJS wrapper in packaged mode (ELECTRON_RUN_AS_NODE doesn't respect "type": "module")
@@ -110,16 +115,30 @@ async function startServer() {
     // ffmpeg-static not available, rely on system ffmpeg
   }
 
-  // Load API keys from electron-store and inject as env vars
+  // Load API keys from electron-store and inject as env vars.
+  // Track which keys came from the store (vs external env) so the UI can
+  // distinguish "user entered via Settings" from "auto-detected from shell env".
   try {
     const { get } = require('./store-manager.cjs');
-    const keys = ['DEEPGRAM_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROK_API_KEY'];
+    const keys = ['DEEPGRAM_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROK_API_KEY', 'ANTHROPIC_API_KEY'];
+    const storeInjected = [];
     for (const key of keys) {
       const val = get(key);
-      if (val) env[key] = val;
+      if (val) {
+        env[key] = val;
+        storeInjected.push(key);
+      }
     }
+    env.VOICESCOPE_STORE_INJECTED_KEYS = storeInjected.join(',');
+    const exportPath = get('exportAudioPath');
+    if (exportPath) env.EXPORT_AUDIO_PATH = exportPath;
   } catch (e) {
     console.warn('[ServerManager] Could not load store keys:', e.message);
+  }
+
+  // Inject API token for request authentication
+  if (options.apiToken) {
+    env.VOICESCOPE_API_TOKEN = options.apiToken;
   }
 
   // Find Node.js executable

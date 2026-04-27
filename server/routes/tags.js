@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { execute, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
+import { autoAssignFolders } from './folders.js';
 
 const router = Router();
 
@@ -45,6 +46,9 @@ router.post('/recordings/:recordingId/tags', (req, res) => {
         [req.params.recordingId, tag.id, source || 'manual']
       );
     }
+
+    // Auto-assign to folders based on tag rules
+    autoAssignFolders(req.params.recordingId);
 
     res.status(201).json(tag);
   } catch (err) {
