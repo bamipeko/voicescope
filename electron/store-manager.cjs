@@ -16,6 +16,7 @@ const STORE_DEFAULTS = {
   meetingAutoRecord: false,
   meetBrowser: 'brave',
   exportAudioPath: '',
+  exportInfographicPath: '',
   disableUpdateCheck: false,
 };
 

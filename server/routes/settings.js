@@ -93,7 +93,7 @@ router.patch('/', (req, res) => {
 
 // POST /api/settings/api-keys — Update API keys in server process at runtime
 // Called from Electron client after saving keys to electron-store
-const ALLOWED_KEYS = ['DEEPGRAM_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROK_API_KEY', 'ANTHROPIC_API_KEY', 'EXPORT_AUDIO_PATH'];
+const ALLOWED_KEYS = ['DEEPGRAM_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROK_API_KEY', 'ANTHROPIC_API_KEY', 'EXPORT_AUDIO_PATH', 'EXPORT_INFOGRAPHIC_PATH'];
 
 router.post('/api-keys', (req, res) => {
   // Allowed in Electron mode (IPC-driven) and Standalone mode (writes to config.json).

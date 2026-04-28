@@ -132,6 +132,8 @@ async function startServer(options = {}) {
     env.VOICESCOPE_STORE_INJECTED_KEYS = storeInjected.join(',');
     const exportPath = get('exportAudioPath');
     if (exportPath) env.EXPORT_AUDIO_PATH = exportPath;
+    const exportInfographicPath = get('exportInfographicPath');
+    if (exportInfographicPath) env.EXPORT_INFOGRAPHIC_PATH = exportInfographicPath;
   } catch (e) {
     console.warn('[ServerManager] Could not load store keys:', e.message);
   }

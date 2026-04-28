@@ -236,7 +236,7 @@ function setupAudioCapture() {
 // Whitelist of keys allowed via IPC store access
 const STORE_ALLOWED_KEYS = [
   'DEEPGRAM_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROK_API_KEY', 'ANTHROPIC_API_KEY',
-  'windowBounds', 'meetingAutoRecord', 'meetBrowser', 'exportAudioPath', 'disableUpdateCheck',
+  'windowBounds', 'meetingAutoRecord', 'meetBrowser', 'exportAudioPath', 'exportInfographicPath', 'disableUpdateCheck',
 ];
 
 // IPC handlers

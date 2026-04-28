@@ -1437,7 +1437,13 @@ export default function RecordingDetail() {
             </div>
           ) : (
             <div className="space-y-3">
-              {infographics.map((ig) => (
+              {infographics.map((ig) => {
+                // Parse the persisted paths so we can show a meaningful state
+                // even when the URL resolution promise is still pending.
+                let storedPaths = []
+                try { storedPaths = JSON.parse(ig.image_paths_json || '[]') } catch {}
+                const urls = infographicUrls[ig.id] || []
+                return (
                 <div key={ig.id} className="bg-card border border-theme rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2 text-[11px] text-gray-400">
                     <div>
@@ -1452,6 +1458,7 @@ export default function RecordingDetail() {
                         <span className="ml-2 text-gray-500">¥{(ig.cost_usd * 150).toFixed(0)}</span>
                       )}
                       <span className="ml-2 text-gray-500">{formatDateTime(ig.created_at)}</span>
+                      <span className="ml-2 text-gray-500">{storedPaths.length}枚</span>
                     </div>
                     <button
                       onClick={() => handleDeleteInfographic(ig.id)}
@@ -1460,8 +1467,14 @@ export default function RecordingDetail() {
                       削除
                     </button>
                   </div>
+                  {storedPaths.length === 0 && (
+                    <div className="bg-red-900/20 border border-red-700/40 rounded p-2 text-[11px] text-red-300">
+                      画像ファイルパスが空です。生成APIから画像が返らなかった可能性があります。
+                      サーバーログ（電子版なら %APPDATA%\VoiceScope\logs\）を確認してください。
+                    </div>
+                  )}
                   <div className="flex gap-3 flex-wrap">
-                    {(infographicUrls[ig.id] || []).map((url, i) => (
+                    {urls.map((url, i) => (
                       <div key={i} className="space-y-1">
                         <a
                           href={url}
@@ -1473,6 +1486,15 @@ export default function RecordingDetail() {
                             src={url}
                             alt={`infographic-${ig.id}-${i + 1}`}
                             className="max-h-96 rounded border border-theme-light hover:border-blue-500 transition-colors cursor-pointer"
+                            onError={(e) => {
+                              // Fallback: show a visible "broken image" placeholder so the user
+                              // knows the load failed (instead of an invisible empty box).
+                              e.currentTarget.style.display = 'none'
+                              e.currentTarget.parentElement.parentElement.insertAdjacentHTML(
+                                'beforeend',
+                                '<div class="bg-red-900/20 border border-red-700/40 rounded p-3 text-[11px] text-red-300">画像の読み込みに失敗しました（パス: ' + storedPaths[i] + '）</div>'
+                              )
+                            }}
                           />
                         </a>
                         <div className="flex gap-1 text-[10px]">
@@ -1519,7 +1541,7 @@ export default function RecordingDetail() {
                     ))}
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>}

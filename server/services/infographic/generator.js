@@ -187,26 +187,88 @@ export async function generateInfographic(opts) {
     throw err;
   }
 
-  // Save each generated image (base64 → PNG file)
+  // Save each generated image. gpt-image-1 returns b64_json by default,
+  // but some accounts / fallback models return only `url`. Handle both.
   const outDir = getInfographicDir();
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
+  // Diagnostic: log shape of response so post-mortem is easy if something breaks.
+  const dataArr = Array.isArray(response.data) ? response.data : [];
+  const shapes = dataArr.map((item, i) => {
+    const keys = Object.keys(item || {});
+    return `[${i}: ${keys.join(',') || 'empty'}]`;
+  }).join(' ');
+  console.log(`[Infographic] Got ${dataArr.length} item(s) from API. Shapes: ${shapes}`);
+
   const paths = [];
-  for (let i = 0; i < (response.data?.length || 0); i++) {
-    const item = response.data[i];
-    const b64 = item.b64_json || item.b64 || null;
-    if (!b64) {
-      console.warn(`[Infographic] response item ${i} has no b64_json`);
-      continue;
-    }
+  for (let i = 0; i < dataArr.length; i++) {
+    const item = dataArr[i] || {};
     const filename = `rec_${recordingId}_ig_${infographicId}_${i + 1}.png`;
     const fp = path.join(outDir, filename);
-    fs.writeFileSync(fp, Buffer.from(b64, 'base64'));
-    paths.push(filename); // store relative; getInfographicDir() resolves
+
+    try {
+      const b64 = item.b64_json || item.b64 || null;
+      if (b64) {
+        fs.writeFileSync(fp, Buffer.from(b64, 'base64'));
+        paths.push(filename);
+      } else if (item.url) {
+        // Fallback: some models return a URL instead of base64. Fetch it.
+        console.log(`[Infographic] Item ${i} returned URL, fetching: ${item.url}`);
+        const resp = await fetch(item.url);
+        if (!resp.ok) throw new Error(`fetch ${resp.status}`);
+        const buf = Buffer.from(await resp.arrayBuffer());
+        fs.writeFileSync(fp, buf);
+        paths.push(filename);
+      } else {
+        console.warn(`[Infographic] Item ${i} has no b64_json or url, skipping. Keys: ${Object.keys(item).join(',')}`);
+      }
+    } catch (writeErr) {
+      console.error(`[Infographic] Failed to save item ${i}:`, writeErr.message);
+    }
   }
 
   if (paths.length === 0) {
-    throw new Error('画像が生成されませんでした（APIから空の応答）');
+    // Detailed error so the user can see what came back
+    throw new Error(`画像が生成されませんでした。APIレスポンス: items=${dataArr.length}, shapes=${shapes}`);
+  }
+  console.log(`[Infographic] Saved ${paths.length} file(s) to ${outDir}`);
+
+  // Auto-export copy: same pattern as audio export — if the user has set
+  // EXPORT_INFOGRAPHIC_PATH in settings, copy each generated PNG to that
+  // folder using a human-readable filename so they can immediately see /
+  // post-process the images outside the app.
+  const exportDir = process.env.EXPORT_INFOGRAPHIC_PATH;
+  if (exportDir) {
+    try {
+      const realExport = fs.realpathSync(exportDir);
+      const stat = fs.statSync(realExport);
+      if (stat.isDirectory()) {
+        // Build a filename prefix that's friendly to humans:
+        //   <recordingId>_<style>_<aspect>_<quality>_<infographicId>_<n>.png
+        const safeStyle = (style || 'style').replace(/[^a-z0-9_-]/gi, '');
+        const safeAspect = (aspectRatio || 'auto').replace(':', 'x');
+        const safeQuality = (quality || 'medium').replace(/[^a-z0-9]/gi, '');
+        for (let i = 0; i < paths.length; i++) {
+          const src = path.join(outDir, paths[i]);
+          const exportName = `${recordingId}_${safeStyle}_${safeAspect}_${safeQuality}_ig${infographicId}_${i + 1}.png`;
+          const dest = path.join(realExport, exportName);
+          if (!path.resolve(dest).startsWith(path.resolve(realExport))) {
+            console.warn(`[InfographicExport] Path traversal blocked: ${dest}`);
+            continue;
+          }
+          try {
+            fs.copyFileSync(src, dest);
+            console.log(`[InfographicExport] Copied ${dest}`);
+          } catch (e) {
+            console.warn(`[InfographicExport] copy failed: ${e.message}`);
+          }
+        }
+      } else {
+        console.warn(`[InfographicExport] Not a directory: ${realExport}`);
+      }
+    } catch (e) {
+      console.warn(`[InfographicExport] Path error: ${e.message}`);
+    }
   }
 
   return {

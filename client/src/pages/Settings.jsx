@@ -525,6 +525,7 @@ export default function Settings() {
 
   // Export audio path (Electron only)
   const [exportAudioPath, setExportAudioPath] = useState('')
+  const [exportInfographicPath, setExportInfographicPath] = useState('')
 
   // Local services status
   const [localStatus, setLocalStatus] = useState(null)
@@ -550,6 +551,7 @@ export default function Settings() {
       window.electronAPI?.getMeetingAutoRecord?.().then((v) => setMeetingAutoRecord(!!v))
       window.electronAPI?.getMeetBrowser?.().then((v) => setMeetBrowser(v || 'brave'))
       window.electronAPI?.storeGet?.('exportAudioPath').then((v) => setExportAudioPath(v || ''))
+      window.electronAPI?.storeGet?.('exportInfographicPath').then((v) => setExportInfographicPath(v || ''))
       window.electronAPI?.getInfo?.().then((info) => setAppVersion(info?.version || ''))
     }
 
@@ -1603,6 +1605,65 @@ export default function Settings() {
                 </button>
               )}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Infographic Export Path (Electron only) — same pattern as audio export.
+          Generated infographics are still kept inside the app's data folder
+          for the gallery, but a copy is also dropped into this folder for
+          quick external use (drag into Slack, post to SNS, etc). */}
+      {isElectron && (
+        <section className="mb-8">
+          <h2 className="text-base font-semibold text-white mb-3">🎨 画像エクスポート</h2>
+          <div className="bg-card border border-theme rounded-lg p-4 space-y-3">
+            <p className="text-xs text-gray-400">
+              生成したインフォグラフィック画像のコピーを指定フォルダに自動保存します。
+              元ファイルはアプリ内に保持されます。
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={exportInfographicPath}
+                placeholder="未設定"
+                className="flex-1 bg-input border border-theme rounded px-3 py-1.5 text-sm text-gray-300 cursor-default"
+              />
+              <button
+                onClick={async () => {
+                  try {
+                    const selected = await window.electronAPI.openDirectoryDialog()
+                    if (selected) {
+                      setExportInfographicPath(selected)
+                      await window.electronAPI.storeSet('exportInfographicPath', selected)
+                      await updateApiKeys({ EXPORT_INFOGRAPHIC_PATH: selected })
+                      addToast('画像エクスポート先を設定しました', 'success')
+                    }
+                  } catch (err) {
+                    addToast(err.message, 'error')
+                  }
+                }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition-colors"
+              >
+                参照
+              </button>
+              {exportInfographicPath && (
+                <button
+                  onClick={async () => {
+                    setExportInfographicPath('')
+                    await window.electronAPI.storeSet('exportInfographicPath', '')
+                    await updateApiKeys({ EXPORT_INFOGRAPHIC_PATH: '' })
+                    addToast('画像エクスポート先をクリアしました', 'success')
+                  }}
+                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
+                >
+                  クリア
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-500">
+              ファイル名: <code className="bg-base px-1 rounded">{'{録音ID}_{スタイル}_{比率}_{品質}_ig{N}_{枚数}.png'}</code>
+            </p>
           </div>
         </section>
       )}
