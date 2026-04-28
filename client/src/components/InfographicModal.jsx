@@ -430,10 +430,11 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
           </button>
           <button
             onClick={handleGenerate}
-            disabled={generating || !structure || (mode === 'split' && !selectedTopicId)}
+            disabled={generating || structuring}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400 text-white text-sm px-5 py-2 rounded font-medium"
+            title={!structure ? '構造化が未実行の場合は、ボタン押下時に自動実行されます' : ''}
           >
-            {generating ? '生成中...' : '🎨 画像を生成'}
+            {generating ? '生成中...' : structuring ? '構造化中...' : '🎨 画像を生成'}
           </button>
         </div>
       </div>
