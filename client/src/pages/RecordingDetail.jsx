@@ -196,19 +196,27 @@ export default function RecordingDetail() {
       const res = await listInfographics(id)
       const list = res.infographics || []
       setInfographics(list)
+      // Diagnostic — open DevTools (F12) to inspect what came back.
+      console.log('[Infographic] Loaded', list.length, 'rows:', list.map(ig => ({
+        id: ig.id, paths: ig.image_paths_json, cost: ig.cost_usd,
+      })))
       // Resolve image URLs (token-suffixed) up-front to keep <img> tags simple
       const urlMap = {}
       for (const ig of list) {
         let paths = []
-        try { paths = JSON.parse(ig.image_paths_json) || [] } catch {}
+        try { paths = JSON.parse(ig.image_paths_json || '[]') } catch (e) {
+          console.warn('[Infographic] paths parse error for id', ig.id, e)
+        }
         urlMap[ig.id] = []
         for (let i = 0; i < paths.length; i++) {
-          urlMap[ig.id].push(await getInfographicImageUrl(ig.id, i + 1))
+          const url = await getInfographicImageUrl(ig.id, i + 1)
+          console.log('[Infographic] URL resolved id=' + ig.id + ' n=' + (i + 1) + ':', url)
+          urlMap[ig.id].push(url)
         }
       }
       setInfographicUrls(urlMap)
-    } catch {
-      // best-effort; don't surface
+    } catch (err) {
+      console.error('[Infographic] reload failed:', err)
     }
   }, [id])
   useEffect(() => { reloadInfographics() }, [reloadInfographics])
@@ -1411,19 +1419,28 @@ export default function RecordingDetail() {
         {detailTab === 'infographic' && <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-sm font-semibold text-white">🎨 インフォグラフィック画像</h2>
+              <h2 className="text-sm font-semibold text-white">🎨 インフォグラフィック画像 <span className="text-[10px] text-gray-500 font-normal">v0.15.4</span></h2>
               <p className="text-[11px] text-gray-400 mt-0.5">
                 要約や文字起こしから、SNSで使えるビジュアルを生成します（OpenAI Image）。
               </p>
             </div>
-            <button
-              onClick={() => setShowInfographicModal(true)}
-              disabled={!transcription}
-              className="text-xs bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-400 text-white px-3 py-1.5 rounded transition-colors"
-              title={transcription ? '画像生成モーダルを開く' : '先に文字起こしが必要です'}
-            >
-              + 新しい画像を生成
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => reloadInfographics()}
+                className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1.5 rounded transition-colors"
+                title="サーバーから一覧を再取得"
+              >
+                🔄 再取得
+              </button>
+              <button
+                onClick={() => setShowInfographicModal(true)}
+                disabled={!transcription}
+                className="text-xs bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-400 text-white px-3 py-1.5 rounded transition-colors"
+                title={transcription ? '画像生成モーダルを開く' : '先に文字起こしが必要です'}
+              >
+                + 新しい画像を生成
+              </button>
+            </div>
           </div>
 
           {infographics.length === 0 ? (

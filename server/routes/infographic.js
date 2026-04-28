@@ -226,6 +226,16 @@ router.get('/recordings/:id/list', (req, res) => {
       'SELECT * FROM infographics WHERE recording_id = ? ORDER BY created_at DESC',
       [req.params.id]
     );
+    // Annotate each row with whether the actual image files exist on disk —
+    // helps diagnose the "row exists but image won't load" case.
+    for (const r of rows) {
+      let paths = [];
+      try { paths = JSON.parse(r.image_paths_json || '[]'); } catch {}
+      r._files_present = paths.map((p) => ({
+        path: p,
+        exists: fs.existsSync(path.join(getInfographicDir(), p)),
+      }));
+    }
     res.json({ infographics: rows });
   } catch (err) {
     console.error('List infographics error:', err);
