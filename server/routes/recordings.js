@@ -537,6 +537,16 @@ router.post('/:id/transcribe', aiLimiter, async (req, res) => {
       return res.status(404).json({ error: '録音が見つかりません' });
     }
 
+    // Guard: refuse if a transcription / refine / summary is already in flight.
+    // Without this, mashing the "再実行" button would queue parallel jobs that
+    // race on the transcriptions row and trip the rate limiter.
+    if (['transcribing', 'refining', 'summarizing'].includes(recording.status)) {
+      return res.status(409).json({
+        error: `現在 ${recording.status} 中です。完了するまでお待ちください`,
+        status: recording.status,
+      });
+    }
+
     const audioPath = safeAudioPath(recording.file_path);
     if (!audioPath || !fs.existsSync(audioPath)) {
       return res.status(404).json({ error: '音声ファイルが見つかりません' });

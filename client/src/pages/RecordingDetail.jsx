@@ -73,6 +73,8 @@ export default function RecordingDetail() {
   const [loading, setLoading] = useState(true)
   const [editingTitle, setEditingTitle] = useState(false)
   const [showEngineMenu, setShowEngineMenu] = useState(false) // re-transcribe engine picker
+  const [selectedRetryEngine, setSelectedRetryEngine] = useState(null) // null = use settings default
+  const [retranscribing, setRetranscribing] = useState(false) // guard against double-click
   const [title, setTitle] = useState('')
   const [activeSummaryTab, setActiveSummaryTab] = useState(0)
   const [newTag, setNewTag] = useState('')
@@ -389,17 +391,32 @@ export default function RecordingDetail() {
     downloadFile(md, `${recording.title || recording.id}.md`)
   }
 
-  const handleRetranscribe = async (engine) => {
+  // Two-step re-transcribe: user picks an engine in the dropdown (no API call),
+  // then explicitly clicks the "実行" button. Prevents the previous bug where
+  // multiple clicks during slow response queued multiple parallel jobs and
+  // tripped the rate limiter.
+  const handleRetranscribe = async () => {
+    if (retranscribing) return // guard
+    const engine = selectedRetryEngine // null = default
+    setRetranscribing(true)
     try {
       await transcribeRecording(id, engine ? { engine } : undefined)
-      const label = engine ? `${ENGINE_LABELS[engine] || engine} で再文字起こしを開始` : '文字起こしを開始しました'
+      const label = engine
+        ? `${ENGINE_LABELS[engine] || engine} で再文字起こしを開始`
+        : '文字起こしを開始しました'
       addToast(label, 'success')
       setShowEngineMenu(false)
       fetchData()
     } catch (err) {
       addToast(err.message, 'error')
+    } finally {
+      setRetranscribing(false)
     }
   }
+
+  // Engine is already running on the server while these statuses are set.
+  // Disable re-transcription until the previous run finishes.
+  const isProcessing = ['transcribing', 'refining', 'summarizing'].includes(recording?.status)
 
   // Labels for the engine selection menu
   // (kept in this file to avoid a new module for static strings)
@@ -898,45 +915,72 @@ export default function RecordingDetail() {
               <div className="relative">
                 <button
                   onClick={() => setShowEngineMenu((v) => !v)}
-                  className="text-xs text-blue-500 hover:text-blue-400"
-                  title={transcription ? `現在のエンジン: ${ENGINE_LABELS[transcription.engine] || transcription.engine}` : ''}
+                  disabled={isProcessing || retranscribing}
+                  className="text-xs text-blue-500 hover:text-blue-400 disabled:text-gray-500 disabled:cursor-not-allowed"
+                  title={
+                    isProcessing
+                      ? '処理中のため再実行できません。完了まで待ってください'
+                      : transcription
+                        ? `現在のエンジン: ${ENGINE_LABELS[transcription.engine] || transcription.engine}`
+                        : ''
+                  }
                 >
-                  再実行 ▾
+                  {isProcessing ? '処理中...' : '再実行 ▾'}
                 </button>
-                {showEngineMenu && (
+                {showEngineMenu && !isProcessing && (
                   <>
                     {/* Click-away layer */}
                     <div className="fixed inset-0 z-10" onClick={() => setShowEngineMenu(false)} />
-                    <div className="absolute right-0 mt-1 z-20 bg-card border border-theme-light rounded-lg shadow-2xl py-1 w-64">
+                    <div className="absolute right-0 mt-1 z-20 bg-card border border-theme-light rounded-lg shadow-2xl py-1 w-72">
                       <div className="px-3 py-1.5 text-[10px] text-gray-400 border-b border-theme-light">
-                        エンジンを選んで再文字起こし
+                        エンジンを選んで「実行」ボタンを押してください
                         {transcription && (
                           <div className="text-[9px] text-gray-500 mt-0.5">
                             現在: {ENGINE_LABELS[transcription.engine] || transcription.engine}
                           </div>
                         )}
                       </div>
+
+                      {/* Default option */}
                       <button
-                        onClick={() => handleRetranscribe()}
-                        className="w-full text-left px-3 py-2 text-xs text-gray-200 hover:bg-theme-light"
+                        onClick={() => setSelectedRetryEngine(null)}
+                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-theme-light ${
+                          selectedRetryEngine === null ? 'bg-blue-600/20 text-white' : 'text-gray-200'
+                        }`}
                       >
-                        デフォルト（設定で選択したエンジン）
+                        <span className="w-3 inline-block">{selectedRetryEngine === null ? '✓' : ''}</span>
+                        <span>デフォルト（設定で選択したエンジン）</span>
                       </button>
+
                       <div className="border-t border-theme-light my-1" />
+
+                      {/* Per-engine options */}
                       {Object.entries(ENGINE_LABELS).map(([key, label]) => (
                         <button
                           key={key}
-                          onClick={() => handleRetranscribe(key)}
-                          className={`w-full text-left px-3 py-2 text-xs hover:bg-theme-light ${
-                            transcription?.engine === key ? 'text-gray-500' : 'text-gray-200'
+                          onClick={() => setSelectedRetryEngine(key)}
+                          className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-theme-light ${
+                            selectedRetryEngine === key ? 'bg-blue-600/20 text-white' : 'text-gray-200'
                           }`}
                         >
-                          {label}
+                          <span className="w-3 inline-block">{selectedRetryEngine === key ? '✓' : ''}</span>
+                          <span className="flex-1">{label}</span>
                           {transcription?.engine === key && (
-                            <span className="text-[10px] text-gray-500 ml-1">（現在）</span>
+                            <span className="text-[10px] text-gray-500">（現在）</span>
                           )}
                         </button>
                       ))}
+
+                      {/* Execute button */}
+                      <div className="border-t border-theme-light mt-1 pt-1 px-2 pb-1">
+                        <button
+                          onClick={handleRetranscribe}
+                          disabled={retranscribing}
+                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400 text-white text-xs px-3 py-1.5 rounded transition-colors"
+                        >
+                          {retranscribing ? '実行中...' : '▶ 実行'}
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
