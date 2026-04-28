@@ -548,6 +548,46 @@ function runMigrations() {
   } catch (e) {
     // Already exists
   }
+
+  // Infographics — generated images linked to a recording.
+  // Each row records the structured prompt JSON, style preset, generation
+  // options, the file paths of produced PNGs, and the cost in USD.
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS infographics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recording_id TEXT NOT NULL REFERENCES recordings(id) ON DELETE CASCADE,
+      block_id TEXT,
+      structure_json TEXT,
+      style TEXT NOT NULL,
+      custom_prompt TEXT,
+      aspect_ratio TEXT NOT NULL,
+      quality TEXT NOT NULL,
+      model TEXT NOT NULL,
+      image_paths_json TEXT NOT NULL,
+      cost_usd REAL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.run('CREATE INDEX IF NOT EXISTS idx_infographics_recording ON infographics(recording_id)');
+  } catch (e) {
+    // Already exists
+  }
+
+  // Reusable preset for infographic generation: lets the user save a
+  // "brand kit" of reference images + default style and reuse it later.
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS infographic_presets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      reference_image_paths_json TEXT,
+      default_style TEXT,
+      default_aspect_ratio TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+  } catch (e) {
+    // Already exists
+  }
 }
 
 function seedTemplates() {

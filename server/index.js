@@ -13,6 +13,7 @@ import settingsRouter from './routes/settings.js';
 import localStatusRouter from './routes/local-status.js';
 import foldersRouter from './routes/folders.js';
 import crossAskRouter from './routes/cross-ask.js';
+import infographicRouter from './routes/infographic.js';
 import { getRuntimeMode, getAppDataDir } from './utils/platform-paths.js';
 import { loadKeysIntoEnv } from './utils/keystore.js';
 import { openInBrowser } from './utils/launch-browser.js';
@@ -141,6 +142,13 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/local-status', localStatusRouter);
 app.use('/api/folders', foldersRouter);
 app.use('/api/ask-cross', crossAskRouter);
+// Infographic generation:
+//  POST /api/infographic/recordings/:id/structure  — LLM-structure summary
+//  POST /api/infographic/recordings/:id/generate   — image generation
+//  GET  /api/infographic/recordings/:id/list       — past generations
+//  GET  /api/infographic/:id/image/:n              — stream a generated PNG
+//  CRUD /api/infographic/presets                   — saved brand kits
+app.use('/api/infographic', infographicRouter);
 
 // Serve static client in production, Electron, and standalone
 // (dev mode uses Vite dev server on port 5173)

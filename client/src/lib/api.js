@@ -125,6 +125,95 @@ export const getRecordingCounts = () => request('/recordings/counts');
 export const revealRecording = (id, target = 'audio') =>
   request(`/recordings/${id}/reveal`, { method: 'POST', body: JSON.stringify({ target }) });
 
+// =====================================================================
+// Infographic generation (premium feature, user-triggered)
+// =====================================================================
+
+export const getInfographicStyles = () => request('/infographic/styles');
+
+export const structureInfographic = (recordingId, options = {}) =>
+  request(`/infographic/recordings/${recordingId}/structure`, {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+
+// generate uses multipart/form-data because reference images are sent inline
+export const generateInfographic = async (recordingId, options) => {
+  const token = await getApiToken();
+  const form = new FormData();
+  form.append('structure', JSON.stringify(options.structure));
+  form.append('style', options.style);
+  if (options.custom_prompt) form.append('custom_prompt', options.custom_prompt);
+  if (options.aspect_ratio) form.append('aspect_ratio', options.aspect_ratio);
+  if (options.quality) form.append('quality', options.quality);
+  if (options.model) form.append('model', options.model);
+  if (options.n) form.append('n', String(options.n));
+  if (options.block_id) form.append('block_id', options.block_id);
+  if (options.preset_id) form.append('preset_id', String(options.preset_id));
+  if (Array.isArray(options.reference_images)) {
+    for (const file of options.reference_images) {
+      form.append('reference_images', file);
+    }
+  }
+
+  const headers = {};
+  if (token) headers['x-api-token'] = token;
+  const res = await fetch(`${BASE}/infographic/recordings/${recordingId}/generate`, {
+    method: 'POST',
+    headers,
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `画像生成に失敗しました (${res.status})`);
+  return data;
+};
+
+export const listInfographics = (recordingId) =>
+  request(`/infographic/recordings/${recordingId}/list`);
+
+export const deleteInfographic = (id) =>
+  request(`/infographic/${id}`, { method: 'DELETE' });
+
+export const getInfographicImageUrl = async (id, n = 1) => {
+  const token = await getApiToken();
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `${BASE}/infographic/${id}/image/${n}${tokenParam}`;
+};
+
+// Presets ("brand kit")
+export const listInfographicPresets = () => request('/infographic/presets');
+
+export const createInfographicPreset = async (options) => {
+  const token = await getApiToken();
+  const form = new FormData();
+  form.append('name', options.name);
+  if (options.default_style) form.append('default_style', options.default_style);
+  if (options.default_aspect_ratio) form.append('default_aspect_ratio', options.default_aspect_ratio);
+  if (options.notes) form.append('notes', options.notes);
+  if (Array.isArray(options.reference_images)) {
+    for (const file of options.reference_images) form.append('reference_images', file);
+  }
+  const headers = {};
+  if (token) headers['x-api-token'] = token;
+  const res = await fetch(`${BASE}/infographic/presets`, {
+    method: 'POST',
+    headers,
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'プリセット作成に失敗しました');
+  return data;
+};
+
+export const deleteInfographicPreset = (id) =>
+  request(`/infographic/presets/${id}`, { method: 'DELETE' });
+
+export const getPresetImageUrl = async (id, n = 1) => {
+  const token = await getApiToken();
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `${BASE}/infographic/presets/${id}/image/${n}${tokenParam}`;
+};
+
 export const transcribeRecording = (id, options = {}) =>
   request(`/recordings/${id}/transcribe`, { method: 'POST', body: JSON.stringify(options) });
 

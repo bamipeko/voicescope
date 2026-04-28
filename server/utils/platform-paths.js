@@ -55,6 +55,20 @@ export function getAudioDir() {
 }
 
 /**
+ * Directory for generated infographic PNGs (one per recording).
+ */
+export function getInfographicDir() {
+  return path.join(getAppDataDir(), 'infographics');
+}
+
+/**
+ * Directory for reusable reference images (brand kit / preset thumbnails).
+ */
+export function getInfographicRefsDir() {
+  return path.join(getAppDataDir(), 'infographic-refs');
+}
+
+/**
  * SQLite database file path.
  */
 export function getDatabasePath() {
@@ -74,9 +88,8 @@ export function getConfigPath() {
  * Safe to call multiple times.
  */
 export function ensureAppDirs() {
-  const base = getAppDataDir();
-  const audio = getAudioDir();
-  for (const dir of [base, audio]) {
+  const dirs = [getAppDataDir(), getAudioDir(), getInfographicDir(), getInfographicRefsDir()];
+  for (const dir of dirs) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }

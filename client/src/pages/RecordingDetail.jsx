@@ -17,6 +17,8 @@ import { getAvailableModels, PROVIDER_LABELS, buildModelToProvider, getDefaultMo
 import { parseDate, formatDateTime, formatDateTimeShort } from '../lib/date'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
+import InfographicModal from '../components/InfographicModal'
+import { listInfographics, deleteInfographic, getInfographicImageUrl } from '../lib/api'
 
 function lightenColor(hex) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -134,6 +136,9 @@ export default function RecordingDetail() {
   // Export menu
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [showRevealMenu, setShowRevealMenu] = useState(false)
+  const [showInfographicModal, setShowInfographicModal] = useState(false)
+  const [infographics, setInfographics] = useState([])
+  const [infographicUrls, setInfographicUrls] = useState({}) // {ig.id: [url, url, ...]}
 
   // Whether the "エクスプローラで開く" button should be visible.
   // Docker / remote deploys can't usefully open a local file manager.
@@ -183,6 +188,40 @@ export default function RecordingDetail() {
   }, [id, addToast])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Load past-generated infographics for this recording.
+  // Refreshed after each generation via onGenerated callback.
+  const reloadInfographics = useCallback(async () => {
+    try {
+      const res = await listInfographics(id)
+      const list = res.infographics || []
+      setInfographics(list)
+      // Resolve image URLs (token-suffixed) up-front to keep <img> tags simple
+      const urlMap = {}
+      for (const ig of list) {
+        let paths = []
+        try { paths = JSON.parse(ig.image_paths_json) || [] } catch {}
+        urlMap[ig.id] = []
+        for (let i = 0; i < paths.length; i++) {
+          urlMap[ig.id].push(await getInfographicImageUrl(ig.id, i + 1))
+        }
+      }
+      setInfographicUrls(urlMap)
+    } catch {
+      // best-effort; don't surface
+    }
+  }, [id])
+  useEffect(() => { reloadInfographics() }, [reloadInfographics])
+
+  const handleDeleteInfographic = async (infographicId) => {
+    try {
+      await deleteInfographic(infographicId)
+      addToast('画像を削除しました', 'success')
+      reloadInfographics()
+    } catch (err) {
+      addToast(err.message, 'error')
+    }
+  }
 
   // Load known speakers for autocomplete
   useEffect(() => {
@@ -1294,6 +1333,19 @@ export default function RecordingDetail() {
             >
               {summarizing ? '生成中...' : '要約生成'}
             </button>
+
+            {/* Infographic generation — premium, user-triggered.
+                Uses the most recent summary as the structuring source by default
+                (or the full transcript if the user picks that in the modal). */}
+            {summaries.length > 0 && (
+              <button
+                onClick={() => setShowInfographicModal(true)}
+                className="text-xs bg-purple-600/80 hover:bg-purple-600 text-white px-3 py-1 rounded transition-colors"
+                title="要約からインフォグラフィック画像を生成（OpenAI Image）"
+              >
+                🎨 画像化
+              </button>
+            )}
           </div>
 
             {summaries.length > 0 ? (
@@ -1355,6 +1407,54 @@ export default function RecordingDetail() {
                     </div>
                     <div className="md-content text-sm">
                       <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>{summaries[activeSummaryTab].content}</Markdown>
+                    </div>
+                  </div>
+                )}
+
+                {/* Generated infographics gallery */}
+                {infographics.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="text-xs font-semibold text-white mb-2">🎨 生成済みインフォグラフィック ({infographics.length})</h3>
+                    <div className="space-y-3">
+                      {infographics.map((ig) => (
+                        <div key={ig.id} className="bg-card border border-theme rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2 text-[11px] text-gray-400">
+                            <div>
+                              <span className="text-gray-300">{ig.style}</span>
+                              <span className="mx-1">/</span>
+                              <span>{ig.aspect_ratio}</span>
+                              <span className="mx-1">/</span>
+                              <span>{ig.quality}</span>
+                              {ig.cost_usd > 0 && (
+                                <span className="ml-2 text-gray-500">¥{(ig.cost_usd * 150).toFixed(0)}</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleDeleteInfographic(ig.id)}
+                              className="hover:text-red-400"
+                            >
+                              削除
+                            </button>
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            {(infographicUrls[ig.id] || []).map((url, i) => (
+                              <a
+                                key={i}
+                                href={url}
+                                download
+                                title="クリックでダウンロード"
+                                className="block"
+                              >
+                                <img
+                                  src={url}
+                                  alt={`infographic-${ig.id}-${i + 1}`}
+                                  className="max-h-80 rounded border border-theme-light hover:border-blue-500 transition-colors cursor-pointer"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -1642,6 +1742,15 @@ export default function RecordingDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Infographic generation modal */}
+      {showInfographicModal && (
+        <InfographicModal
+          recordingId={id}
+          onClose={() => setShowInfographicModal(false)}
+          onGenerated={() => reloadInfographics()}
+        />
       )}
 
       {/* Confirm dialog */}
