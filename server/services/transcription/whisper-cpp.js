@@ -230,6 +230,110 @@ export async function downloadModel(modelName, onProgress) {
 }
 
 /**
+ * Resolve which whisper model to actually use:
+ *   1. options.model (explicit override from caller)
+ *   2. settings.local_whisper_model
+ *   3. Largest installed model (best quality the user has on disk)
+ *   4. 'base' (will trigger a clear "not downloaded" error if missing)
+ */
+function resolveModel(options) {
+  // Explicit override
+  if (options.model && MODELS[options.model]) {
+    const p = path.join(getModelsDir(), MODELS[options.model].file);
+    if (existsSync(p)) return { name: options.model, path: p };
+  }
+
+  // User's saved default
+  const modelSetting = queryOne("SELECT value FROM settings WHERE key = 'local_whisper_model'");
+  let savedModel = null;
+  if (modelSetting) {
+    try { savedModel = JSON.parse(modelSetting.value); } catch { savedModel = modelSetting.value; }
+  }
+  if (savedModel && MODELS[savedModel]) {
+    const p = path.join(getModelsDir(), MODELS[savedModel].file);
+    if (existsSync(p)) return { name: savedModel, path: p };
+  }
+
+  // Otherwise, pick whatever the user has actually downloaded.
+  // Prefer larger models (better quality) for best chance of success.
+  const ORDER = ['large-v3', 'medium', 'small', 'base', 'tiny'];
+  for (const name of ORDER) {
+    const p = path.join(getModelsDir(), MODELS[name].file);
+    if (existsSync(p)) return { name, path: p };
+  }
+
+  return null;
+}
+
+/**
+ * Convert any audio format whisper.cpp can't reliably read (webm/ogg/m4a/flac
+ * with non-standard codecs) into 16kHz mono WAV via ffmpeg. Returns a path to
+ * the temp WAV that the caller is responsible for deleting.
+ *
+ * whisper.cpp 1.8.x officially supports only WAV PCM; .webm produced by browser
+ * MediaRecorder uses Opus and silently produces empty output if fed directly.
+ */
+async function ensureWhisperReadable(audioPath) {
+  const ext = path.extname(audioPath).toLowerCase();
+  if (ext === '.wav') return { path: audioPath, isTemp: false };
+
+  // Need ffmpeg to convert. Resolve from PATH or from common locations.
+  const ffmpegCmd = await findFfmpeg();
+  if (!ffmpegCmd) {
+    throw new Error(
+      'whisper.cpp で .webm / .mp3 / .m4a / .ogg / .flac を扱うには ffmpeg が必要です。\n' +
+      '推奨: winget install ffmpeg または https://www.gyan.dev/ffmpeg/builds/ から取得して PATH に追加してください。'
+    );
+  }
+
+  const tmpWav = path.join(path.dirname(audioPath), `_whispercpp_${Date.now()}.wav`);
+  await new Promise((resolve, reject) => {
+    const proc = spawn(ffmpegCmd, [
+      '-y',
+      '-i', audioPath,
+      '-ar', '16000',  // 16kHz
+      '-ac', '1',       // mono
+      '-c:a', 'pcm_s16le',
+      tmpWav,
+    ], { windowsHide: true });
+    let stderr = '';
+    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+    proc.on('error', reject);
+    proc.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg failed (code ${code}): ${stderr.slice(-300)}`));
+    });
+  });
+
+  return { path: tmpWav, isTemp: true };
+}
+
+async function findFfmpeg() {
+  // 1. PATH
+  for (const cmd of ['ffmpeg', 'ffmpeg.exe']) {
+    try {
+      const ok = await new Promise((resolve) => {
+        const p = spawn(cmd, ['-version'], { windowsHide: true });
+        p.on('error', () => resolve(false));
+        p.on('close', (code) => resolve(code === 0));
+      });
+      if (ok) return cmd;
+    } catch {}
+  }
+  // 2. Common Windows install locations
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+      path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WinGet', 'Packages', 'Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe', 'ffmpeg-7.1-full_build', 'bin', 'ffmpeg.exe'),
+    ].filter(Boolean);
+    for (const c of candidates) {
+      if (existsSync(c)) return c;
+    }
+  }
+  return null;
+}
+
+/**
  * Transcribe audio using whisper.cpp binary.
  */
 export async function transcribeWithWhisperCpp(audioPath, options = {}) {
@@ -237,22 +341,27 @@ export async function transcribeWithWhisperCpp(audioPath, options = {}) {
     throw new Error('whisper.cpp がインストールされていません。設定画面からセットアップしてください。');
   }
 
-  const modelSetting = queryOne("SELECT value FROM settings WHERE key = 'local_whisper_model'");
-  const modelName = modelSetting ? JSON.parse(modelSetting.value) : 'base';
-  const modelInfo = MODELS[modelName];
-  if (!modelInfo) throw new Error(`Unknown model: ${modelName}`);
-
-  const modelPath = path.join(getModelsDir(), modelInfo.file);
-  if (!existsSync(modelPath)) {
-    throw new Error(`モデル "${modelName}" がダウンロードされていません。設定画面からダウンロードしてください。`);
+  const resolved = resolveModel(options);
+  if (!resolved) {
+    const installed = getInstalledModels().map(m => m.name).join(', ') || '(なし)';
+    throw new Error(
+      `whisper.cppのモデルがダウンロードされていません。\n` +
+      `インストール済み: ${installed}\n` +
+      `設定画面 → whisper.cpp セクションから tiny / base / small / medium / large-v3 のいずれかをDLしてください。`
+    );
   }
+  const modelName = resolved.name;
+  const modelPath = resolved.path;
+
+  // Convert non-WAV input via ffmpeg (whisper.cpp 1.8.x only supports WAV PCM)
+  const audio = await ensureWhisperReadable(audioPath);
 
   const language = (!options.language || options.language === 'auto') ? 'auto' : options.language;
   const mainExe = getMainExePath();
 
   const args = [
     '-m', modelPath,
-    '-f', audioPath,
+    '-f', audio.path,
     '--output-json',      // JSON output
     '--no-timestamps',    // We'll use the JSON timestamps
     '-pp',                // Print progress
@@ -265,7 +374,14 @@ export async function transcribeWithWhisperCpp(audioPath, options = {}) {
     args.push('-l', 'auto');
   }
 
-  console.log(`[whisper.cpp] Transcribing: model=${modelName}, language=${language}`);
+  console.log(`[whisper.cpp] Transcribing: model=${modelName}, language=${language}, audio=${audio.path}`);
+
+  // Cleanup helper for the temp WAV (runs on success, error, and parse failures alike)
+  const cleanupTempWav = () => {
+    if (audio.isTemp) {
+      try { fs.unlinkSync(audio.path); } catch {}
+    }
+  };
 
   return new Promise((resolve, reject) => {
     const proc = spawn(mainExe, args, {
@@ -287,10 +403,12 @@ export async function transcribeWithWhisperCpp(audioPath, options = {}) {
     });
 
     proc.on('error', (err) => {
+      cleanupTempWav();
       reject(new Error(`whisper.cpp実行エラー: ${err.message}`));
     });
 
     proc.on('close', (code) => {
+      cleanupTempWav();
       if (code !== 0) {
         reject(new Error(`whisper.cppが異常終了しました (code ${code})\n${stderr.slice(-500)}`));
         return;

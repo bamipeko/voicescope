@@ -587,8 +587,14 @@ router.post('/:id/transcribe', aiLimiter, async (req, res) => {
   } catch (err) {
     console.error('Transcription error:', err);
     execute('UPDATE recordings SET status = ? WHERE id = ?', ['error', req.params.id]);
-    console.error('Transcribe error:', err);
-    res.status(500).json({ error: '文字起こしに失敗しました。設定やAPIキーを確認してください。' });
+    // Surface the actual error message so the user can fix the issue without
+    // diving into server logs (e.g. "モデルがDLされていない" / "ffmpeg必要").
+    // Strip stack traces to keep the toast readable.
+    const detail = (err?.message || String(err) || '').slice(0, 400);
+    res.status(500).json({
+      error: `文字起こしに失敗しました: ${detail}`,
+      detail,
+    });
   }
 });
 

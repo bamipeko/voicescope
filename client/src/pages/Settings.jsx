@@ -1220,14 +1220,22 @@ export default function Settings() {
                 onChange={(e) => handleSave('local_whisper_model', e.target.value)}
                 className="bg-input border border-theme-light rounded px-3 py-2 text-sm text-white w-full"
               >
-                {WHISPER_MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label} — RAM: {m.ram}
-                  </option>
-                ))}
+                {WHISPER_MODELS.map((m) => {
+                  const installed = localStatus?.whisperCpp?.models?.some(im => im.name === m.value)
+                  return (
+                    <option key={m.value} value={m.value}>
+                      {m.label} — RAM: {m.ram}
+                      {installed ? ' ✓ DL済み' : ' (未DL)'}
+                    </option>
+                  )
+                })}
               </select>
               <p className="text-xs text-gray-400 mt-1">
-                初回使用時にモデルが自動ダウンロードされます。大きいモデルほど精度が高いですが、処理が遅くなります。
+                未DLのモデルを選んだ場合、文字起こし時に自動で「DL済みの中から最も大きい（精度の高い）モデル」にフォールバックします。
+                先に下の「whisper.cpp」セクションで使いたいサイズをDLしておくのが確実です。
+              </p>
+              <p className="text-xs text-amber-400/80 mt-1">
+                ⚠ webm / mp3 / m4a 等の音声を扱うには <code className="bg-base px-1 rounded">ffmpeg</code> が PATH に必要です（自動でwav変換するため）。
               </p>
             </div>
           )}

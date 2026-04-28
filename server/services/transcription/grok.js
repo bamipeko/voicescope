@@ -50,6 +50,12 @@ export async function transcribeWithGrokSTT(audioPath, options = {}) {
   if (options.diarize !== false) {
     form.append('diarize', 'true');
   }
+  // Bias toward the requested language. Grok STT (2026-04 release) sometimes
+  // mixes English into Japanese audio when language detection is uncertain.
+  // OpenAI-compatible STT APIs accept a 'prompt' to nudge the model.
+  if (language === 'ja') {
+    form.append('prompt', '日本語の会話の文字起こしです。すべて日本語で書き起こしてください。固有名詞や英単語が登場した場合のみ英字を使ってください。');
+  }
 
   const startedAt = Date.now();
   const resp = await fetch(endpoint, {
