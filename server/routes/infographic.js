@@ -3,8 +3,9 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
+import { exec } from 'child_process';
 import { execute, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
-import { getInfographicDir, getInfographicRefsDir } from '../utils/platform-paths.js';
+import { getInfographicDir, getInfographicRefsDir, getRuntimeMode } from '../utils/platform-paths.js';
 import { listStyles } from '../services/infographic/styles.js';
 import { structureForInfographic } from '../services/infographic/structurer.js';
 import { generateInfographic, MODELS } from '../services/infographic/generator.js';
@@ -257,6 +258,55 @@ router.get('/:id/image/:n', (req, res) => {
   } catch (err) {
     console.error('Stream infographic image error:', err);
     res.status(500).json({ error: '画像配信に失敗しました' });
+  }
+});
+
+// ------------------------------------------------------------------
+// POST /api/infographic/:id/reveal — open the OS file manager at the image.
+// Body: { n: 1 }  (1-indexed image number, default 1)
+// Same Electron/Standalone-only constraint as recordings/reveal.
+// ------------------------------------------------------------------
+router.post('/:id/reveal', (req, res) => {
+  try {
+    const mode = getRuntimeMode();
+    if (mode !== 'electron' && mode !== 'standalone') {
+      return res.status(403).json({ error: 'この環境ではエクスプローラを開けません' });
+    }
+    const ig = queryOne('SELECT * FROM infographics WHERE id = ?', [req.params.id]);
+    if (!ig) return res.status(404).json({ error: '画像が見つかりません' });
+
+    let paths = [];
+    try { paths = JSON.parse(ig.image_paths_json) || []; } catch {}
+    const idx = Math.max(0, (parseInt(req.body?.n) || 1) - 1);
+    if (idx >= paths.length) return res.status(404).json({ error: '画像が範囲外です' });
+
+    const fp = path.join(getInfographicDir(), paths[idx]);
+    if (!fp.startsWith(path.resolve(getInfographicDir()))) {
+      return res.status(403).json({ error: 'invalid path' });
+    }
+    if (!fs.existsSync(fp)) return res.status(404).json({ error: 'ファイルが見つかりません' });
+
+    let cmd;
+    switch (process.platform) {
+      case 'win32':
+        cmd = `explorer.exe /select,"${fp.replace(/\//g, '\\')}"`;
+        break;
+      case 'darwin':
+        cmd = `open -R "${fp}"`;
+        break;
+      default:
+        cmd = `xdg-open "${path.dirname(fp)}"`;
+    }
+    exec(cmd, (err) => {
+      // explorer.exe always returns code 1 on success — ignore Windows errors
+      if (err && process.platform !== 'win32') {
+        console.warn('[Infographic reveal] exec error:', err.message);
+      }
+    });
+    res.json({ success: true, path: fp });
+  } catch (err) {
+    console.error('Reveal infographic error:', err);
+    res.status(500).json({ error: 'エクスプローラを開けませんでした' });
   }
 });
 

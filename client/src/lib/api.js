@@ -174,6 +174,10 @@ export const listInfographics = (recordingId) =>
 export const deleteInfographic = (id) =>
   request(`/infographic/${id}`, { method: 'DELETE' });
 
+// Open the OS file manager at the generated image (Electron/Standalone only).
+export const revealInfographic = (id, n = 1) =>
+  request(`/infographic/${id}/reveal`, { method: 'POST', body: JSON.stringify({ n }) });
+
 export const getInfographicImageUrl = async (id, n = 1) => {
   const token = await getApiToken();
   const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';

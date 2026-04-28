@@ -101,20 +101,44 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
   }
 
   const handleGenerate = async () => {
-    if (!structure) {
-      return addToast('まず「構造化を実行」を押してください', 'error')
-    }
-
-    // Pick the right structure to send (whole or selected topic)
-    let payload = structure
-    if (mode === 'split') {
-      const topic = structure.topics?.find((t) => t.id === selectedTopicId)
-      if (!topic) return addToast('生成するトピックを選んでください', 'error')
-      payload = topic
-    }
-
     setGenerating(true)
     try {
+      // Auto-structure if the user forgot to click 構造化を実行 first.
+      // Generate is the obvious "go" button, so we treat structuring as
+      // an implicit step — only required to be explicit if the user wants
+      // to inspect / pick a topic before hitting Generate.
+      let activeStructure = structure
+      if (!activeStructure) {
+        addToast('構造化を自動実行しています...', 'info')
+        setStructuring(true)
+        try {
+          const res = await structureInfographic(recordingId, { mode, source })
+          activeStructure = res.structure
+          setStructure(activeStructure)
+          if (mode === 'split' && activeStructure?.topics?.length > 0) {
+            setSelectedTopicId(activeStructure.topics[0].id)
+          }
+        } finally {
+          setStructuring(false)
+        }
+      }
+
+      // Pick the right structure to send (whole or selected topic)
+      let payload = activeStructure
+      let blockIdForRequest
+      if (mode === 'split') {
+        // If split-mode auto-structuring just happened, use the first topic.
+        // Otherwise use whatever the user picked.
+        const targetId = selectedTopicId || activeStructure?.topics?.[0]?.id
+        const topic = activeStructure?.topics?.find((t) => t.id === targetId)
+        if (!topic) {
+          addToast('生成するトピックがありません', 'error')
+          return
+        }
+        payload = topic
+        blockIdForRequest = targetId
+      }
+
       const res = await generateInfographic(recordingId, {
         structure: payload,
         style,
@@ -123,7 +147,7 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
         quality,
         model,
         n,
-        block_id: mode === 'split' ? selectedTopicId : undefined,
+        block_id: blockIdForRequest,
         preset_id: selectedPresetId || undefined,
         reference_images: referenceFiles,
       })

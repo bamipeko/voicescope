@@ -101,10 +101,14 @@ app.use('/api', (req, res, next) => {
     return res.status(429).json({ error: 'Too many requests' });
   }
 
-  // Token from header preferred; query param allowed only for audio streaming
-  // (<audio src> cannot set custom headers)
-  const isAudioStream = /^\/recordings\/[^/]+\/audio$/.test(req.path);
-  const provided = req.headers['x-api-token'] || (isAudioStream ? (req.query.token || '') : '');
+  // Token from header preferred; query param allowed only for media streaming
+  // (<audio> and <img> tags can't set custom headers, so query-param token is
+  // the only practical option for them).
+  const isMediaStream =
+    /^\/recordings\/[^/]+\/audio$/.test(req.path) ||
+    /^\/infographic\/\d+\/image\/\d+$/.test(req.path) ||
+    /^\/infographic\/presets\/\d+\/image\/\d+$/.test(req.path);
+  const provided = req.headers['x-api-token'] || (isMediaStream ? (req.query.token || '') : '');
   const providedBuf = Buffer.from(provided);
 
   // Timing-safe comparison (prevents timing attacks)

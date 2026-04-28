@@ -18,7 +18,7 @@ import { parseDate, formatDateTime, formatDateTimeShort } from '../lib/date'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
 import InfographicModal from '../components/InfographicModal'
-import { listInfographics, deleteInfographic, getInfographicImageUrl } from '../lib/api'
+import { listInfographics, deleteInfographic, getInfographicImageUrl, revealInfographic } from '../lib/api'
 
 function lightenColor(hex) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -870,6 +870,7 @@ export default function RecordingDetail() {
         {[
           { key: 'transcription', label: '文字起こし' },
           { key: 'summary', label: `要約${summaries.length > 0 ? ` (${summaries.length})` : ''}` },
+          { key: 'infographic', label: `🎨 画像${infographics.length > 0 ? ` (${infographics.length})` : ''}` },
           { key: 'tags', label: `タグ${tags.length > 0 ? ` (${tags.length})` : ''}` },
           { key: 'ask', label: 'AI質問' },
         ].map((tab) => (
@@ -1333,19 +1334,6 @@ export default function RecordingDetail() {
             >
               {summarizing ? '生成中...' : '要約生成'}
             </button>
-
-            {/* Infographic generation — premium, user-triggered.
-                Uses the most recent summary as the structuring source by default
-                (or the full transcript if the user picks that in the modal). */}
-            {summaries.length > 0 && (
-              <button
-                onClick={() => setShowInfographicModal(true)}
-                className="text-xs bg-purple-600/80 hover:bg-purple-600 text-white px-3 py-1 rounded transition-colors"
-                title="要約からインフォグラフィック画像を生成（OpenAI Image）"
-              >
-                🎨 画像化
-              </button>
-            )}
           </div>
 
             {summaries.length > 0 ? (
@@ -1411,59 +1399,129 @@ export default function RecordingDetail() {
                   </div>
                 )}
 
-                {/* Generated infographics gallery */}
-                {infographics.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-xs font-semibold text-white mb-2">🎨 生成済みインフォグラフィック ({infographics.length})</h3>
-                    <div className="space-y-3">
-                      {infographics.map((ig) => (
-                        <div key={ig.id} className="bg-card border border-theme rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2 text-[11px] text-gray-400">
-                            <div>
-                              <span className="text-gray-300">{ig.style}</span>
-                              <span className="mx-1">/</span>
-                              <span>{ig.aspect_ratio}</span>
-                              <span className="mx-1">/</span>
-                              <span>{ig.quality}</span>
-                              {ig.cost_usd > 0 && (
-                                <span className="ml-2 text-gray-500">¥{(ig.cost_usd * 150).toFixed(0)}</span>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => handleDeleteInfographic(ig.id)}
-                              className="hover:text-red-400"
-                            >
-                              削除
-                            </button>
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            {(infographicUrls[ig.id] || []).map((url, i) => (
-                              <a
-                                key={i}
-                                href={url}
-                                download
-                                title="クリックでダウンロード"
-                                className="block"
-                              >
-                                <img
-                                  src={url}
-                                  alt={`infographic-${ig.id}-${i + 1}`}
-                                  className="max-h-80 rounded border border-theme-light hover:border-blue-500 transition-colors cursor-pointer"
-                                />
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="bg-card border border-theme rounded-lg p-8 text-center text-gray-400">
                 {recording.status === 'summarizing' ? '要約生成中...' : '要約がありません'}
               </div>
             )}
+        </div>}
+
+        {/* Infographic tab — premium image-generation feature */}
+        {detailTab === 'infographic' && <div>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-white">🎨 インフォグラフィック画像</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                要約や文字起こしから、SNSで使えるビジュアルを生成します（OpenAI Image）。
+              </p>
+            </div>
+            <button
+              onClick={() => setShowInfographicModal(true)}
+              disabled={!transcription}
+              className="text-xs bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-400 text-white px-3 py-1.5 rounded transition-colors"
+              title={transcription ? '画像生成モーダルを開く' : '先に文字起こしが必要です'}
+            >
+              + 新しい画像を生成
+            </button>
+          </div>
+
+          {infographics.length === 0 ? (
+            <div className="bg-card border border-theme rounded-lg p-8 text-center">
+              <p className="text-gray-400 text-sm">まだ画像がありません</p>
+              <p className="text-gray-500 text-xs mt-2">
+                {transcription
+                  ? '右上の「+ 新しい画像を生成」を押して、要約からインフォグラフィックを作成しましょう'
+                  : '先に文字起こしを実行してください'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {infographics.map((ig) => (
+                <div key={ig.id} className="bg-card border border-theme rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2 text-[11px] text-gray-400">
+                    <div>
+                      <span className="text-gray-300">{ig.style}</span>
+                      <span className="mx-1">/</span>
+                      <span>{ig.aspect_ratio}</span>
+                      <span className="mx-1">/</span>
+                      <span>{ig.quality}</span>
+                      <span className="mx-1">/</span>
+                      <span>{ig.model}</span>
+                      {ig.cost_usd > 0 && (
+                        <span className="ml-2 text-gray-500">¥{(ig.cost_usd * 150).toFixed(0)}</span>
+                      )}
+                      <span className="ml-2 text-gray-500">{formatDateTime(ig.created_at)}</span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteInfographic(ig.id)}
+                      className="hover:text-red-400"
+                    >
+                      削除
+                    </button>
+                  </div>
+                  <div className="flex gap-3 flex-wrap">
+                    {(infographicUrls[ig.id] || []).map((url, i) => (
+                      <div key={i} className="space-y-1">
+                        <a
+                          href={url}
+                          download={`infographic_${ig.id}_${i + 1}.png`}
+                          title="クリックでダウンロード"
+                          className="block"
+                        >
+                          <img
+                            src={url}
+                            alt={`infographic-${ig.id}-${i + 1}`}
+                            className="max-h-96 rounded border border-theme-light hover:border-blue-500 transition-colors cursor-pointer"
+                          />
+                        </a>
+                        <div className="flex gap-1 text-[10px]">
+                          <a
+                            href={url}
+                            download={`infographic_${ig.id}_${i + 1}.png`}
+                            className="px-2 py-1 bg-blue-600/20 text-blue-300 hover:bg-blue-600/40 rounded"
+                          >
+                            ↓ DL
+                          </a>
+                          {canReveal && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await revealInfographic(ig.id, i + 1)
+                                  addToast('エクスプローラを開きました', 'success')
+                                } catch (err) {
+                                  addToast(err.message, 'error')
+                                }
+                              }}
+                              className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded"
+                              title="ファイルの場所をエクスプローラで開く"
+                            >
+                              📁 場所
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              try {
+                                // Copy image to clipboard
+                                const blob = await (await fetch(url)).blob()
+                                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
+                                addToast('画像をクリップボードにコピーしました', 'success')
+                              } catch (err) {
+                                addToast('コピーに失敗しました（ブラウザ非対応の可能性）', 'error')
+                              }
+                            }}
+                            className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded"
+                          >
+                            📋 コピー
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>}
 
         {/* Tags tab */}
