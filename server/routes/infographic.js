@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { exec } from 'child_process';
-import { execute, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
+import { execute, executeReturningId, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
 import { getInfographicDir, getInfographicRefsDir, getRuntimeMode } from '../utils/platform-paths.js';
 import { listStyles } from '../services/infographic/styles.js';
 import { structureForInfographic } from '../services/infographic/structurer.js';
@@ -21,7 +21,8 @@ const imageLimiter = rateLimit({
   message: { error: '画像生成リクエストが多すぎます。少し待ってから再試行してください。' },
 });
 
-// In-memory uploads up to ~12MB each (gpt-image-1 accepts up to 50MB but we cap)
+// In-memory uploads up to ~12MB each (gpt-image-2 accepts up to 16 reference
+// images of larger sizes, but we cap conservatively to keep memory in check)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 12 * 1024 * 1024, files: 8 },
@@ -29,8 +30,26 @@ const upload = multer({
 
 // ------------------------------------------------------------------
 // GET /api/infographic/styles — list available style presets (for UI)
+//   Also reports which LLM will be used for structuring (so the user
+//   can see at a glance whether it's openai/gpt-5.4-mini, gemini, etc.)
 // ------------------------------------------------------------------
+function readSetting(key, fallback = null) {
+  const row = queryOne('SELECT value FROM settings WHERE key = ?', [key]);
+  if (!row) return fallback;
+  try { return JSON.parse(row.value); } catch { return row.value; }
+}
+
 router.get('/styles', (req, res) => {
+  // Mirror the resolution logic in askLLM(): ask_* > summary_* > defaults.
+  const provider =
+    readSetting('default_ask_provider')
+    || readSetting('default_summary_provider')
+    || 'openai';
+  const model =
+    readSetting('default_ask_model')
+    || readSetting('default_summary_model')
+    || 'gpt-5.4-mini';
+
   res.json({
     styles: listStyles(),
     models: Object.keys(MODELS).map((key) => ({
@@ -38,6 +57,8 @@ router.get('/styles', (req, res) => {
       qualities: Object.keys(MODELS[key].pricing),
       pricing: MODELS[key].pricing,
     })),
+    structurer: { provider, model, source: 'ask-or-summary-settings' },
+    image_model: 'gpt-image-2',
   });
 });
 
@@ -102,8 +123,8 @@ router.post('/recordings/:id/structure', async (req, res) => {
 //     - style (string)                  REQUIRED ('business'|'pop'|'natural'|'minimal'|'custom')
 //     - custom_prompt (string)          optional
 //     - aspect_ratio (string)           default '2:3'
-//     - quality (string)                default 'medium'
-//     - model (string)                  default 'gpt-image-1'
+//     - quality (string)                default 'auto' ('auto'|'low'|'medium'|'high')
+//     - model (string)                  default 'gpt-image-2' (only supported)
 //     - n (number)                      default 1
 //     - block_id (string)               optional, for split mode
 //     - preset_id (number)              optional — load reference images from preset
@@ -129,8 +150,13 @@ router.post(
       const style = req.body.style || 'natural';
       const customPrompt = req.body.custom_prompt || null;
       const aspectRatio = req.body.aspect_ratio || '2:3';
-      const quality = req.body.quality || 'medium';
-      const model = req.body.model || 'gpt-image-1';
+      // Default to 'low' — empirical testing showed it produces
+      // production-quality output for our infographic use case at 1/10 the
+      // cost of auto/medium. Higher tiers should be an explicit opt-in.
+      const quality = req.body.quality || 'low';
+      // gpt-image-2 only — older gpt-image-1 family cannot render Japanese.
+      // Silently coerce any legacy value the client might still send.
+      const model = 'gpt-image-2';
       const n = Math.max(1, Math.min(4, parseInt(req.body.n) || 1));
       const blockId = req.body.block_id || null;
 
@@ -163,7 +189,10 @@ router.post(
       }
 
       // Insert a placeholder row so we can use its id for filenames.
-      execute(
+      // Use executeReturningId — sql.js's save() (called by execute) resets
+      // last_insert_rowid() to 0, so a separate lastInsertRowId() call here
+      // would always return 0 and break everything downstream.
+      const infographicId = executeReturningId(
         `INSERT INTO infographics (recording_id, block_id, structure_json, style, custom_prompt,
                                    aspect_ratio, quality, model, image_paths_json, cost_usd)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -180,9 +209,10 @@ router.post(
           0,
         ]
       );
-      const infographicId = lastInsertRowId();
+      console.log(`[Infographic] Created placeholder row id=${infographicId} for recording=${req.params.id}`);
 
       let result;
+      let updateOk = false;
       try {
         result = await generateInfographic({
           structure,
@@ -196,17 +226,36 @@ router.post(
           recordingId: req.params.id,
           infographicId,
         });
+
+        // Be paranoid about the result shape — if the generator returned an
+        // unexpected value, surface it loudly instead of silently writing
+        // an empty array to the DB.
+        if (!result || !Array.isArray(result.paths) || result.paths.length === 0) {
+          throw new Error(
+            `generator returned no paths (result keys: ${result ? Object.keys(result).join(',') : 'null'}, paths: ${JSON.stringify(result?.paths)})`
+          );
+        }
+
+        // Update the row with the actual produced files + cost.
+        execute(
+          'UPDATE infographics SET image_paths_json = ?, cost_usd = ? WHERE id = ?',
+          [JSON.stringify(result.paths), result.cost, infographicId]
+        );
+        updateOk = true;
+        console.log(`[Infographic] Row ${infographicId} updated with ${result.paths.length} path(s): ${result.paths.join(', ')}`);
       } catch (err) {
-        // Roll back the placeholder row on failure
-        execute('DELETE FROM infographics WHERE id = ?', [infographicId]);
+        // Roll back the placeholder row on ANY failure (generator threw,
+        // generator returned bad shape, UPDATE threw, etc.).
+        if (!updateOk) {
+          try {
+            execute('DELETE FROM infographics WHERE id = ?', [infographicId]);
+            console.log(`[Infographic] Rolled back placeholder row ${infographicId}`);
+          } catch (delErr) {
+            console.error(`[Infographic] Could not delete placeholder ${infographicId}:`, delErr.message);
+          }
+        }
         throw err;
       }
-
-      // Update the row with the actual produced files + cost
-      execute(
-        'UPDATE infographics SET image_paths_json = ?, cost_usd = ? WHERE id = ?',
-        [JSON.stringify(result.paths), result.cost, infographicId]
-      );
 
       const row = queryOne('SELECT * FROM infographics WHERE id = ?', [infographicId]);
       res.status(201).json({ infographic: row });
@@ -240,6 +289,120 @@ router.get('/recordings/:id/list', (req, res) => {
   } catch (err) {
     console.error('List infographics error:', err);
     res.status(500).json({ error: '一覧取得に失敗しました' });
+  }
+});
+
+// ------------------------------------------------------------------
+// GET /api/infographic/recordings/:id/disk-files
+//   Lists every PNG on disk that looks like it belongs to this recording,
+//   regardless of DB state. Useful when the user suspects files were
+//   "lost" or "overwritten" — they can see exactly what's actually there.
+// ------------------------------------------------------------------
+router.get('/recordings/:id/disk-files', (req, res) => {
+  try {
+    const recordingId = req.params.id;
+    const dir = getInfographicDir();
+    if (!fs.existsSync(dir)) return res.json({ dir, files: [] });
+
+    const all = fs.readdirSync(dir);
+    const own = all
+      .filter((f) => new RegExp(`^rec_${recordingId}_ig_\\d+_(\\d+_)?\\d+\\.png$`).test(f))
+      .map((f) => {
+        const fp = path.join(dir, f);
+        const st = fs.statSync(fp);
+        return {
+          name: f,
+          size: st.size,
+          mtime: st.mtime,
+          ctime: st.ctime,
+        };
+      })
+      .sort((a, b) => b.mtime - a.mtime);
+
+    res.json({ dir, files: own, total_in_dir: all.length });
+  } catch (err) {
+    console.error('Disk-files error:', err);
+    res.status(500).json({ error: err.message || 'disk listing failed' });
+  }
+});
+
+// ------------------------------------------------------------------
+// POST /api/infographic/recordings/:id/reveal-dir
+//   Opens the infographics folder in the OS file manager.
+// ------------------------------------------------------------------
+router.post('/recordings/:id/reveal-dir', (req, res) => {
+  try {
+    const mode = getRuntimeMode();
+    if (mode !== 'electron' && mode !== 'standalone') {
+      return res.status(403).json({ error: 'この環境ではエクスプローラを開けません' });
+    }
+    const dir = getInfographicDir();
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    let cmd;
+    if (process.platform === 'win32') {
+      cmd = `explorer "${dir}"`;
+    } else if (process.platform === 'darwin') {
+      cmd = `open "${dir}"`;
+    } else {
+      cmd = `xdg-open "${dir}"`;
+    }
+    exec(cmd, () => {});
+    res.json({ success: true, dir });
+  } catch (err) {
+    console.error('Reveal dir error:', err);
+    res.status(500).json({ error: err.message || 'failed to open folder' });
+  }
+});
+
+// ------------------------------------------------------------------
+// POST /api/infographic/recordings/:id/rescue
+//   For rows whose image_paths_json is empty but whose generated PNGs
+//   are sitting on disk (e.g. the UPDATE ran with empty paths because
+//   the SDK response shape was unexpected): scan the disk for files
+//   matching the row's id pattern and re-populate image_paths_json.
+//   Safe to call repeatedly; idempotent.
+// ------------------------------------------------------------------
+router.post('/recordings/:id/rescue', (req, res) => {
+  try {
+    const recordingId = req.params.id;
+    const rows = queryAll(
+      'SELECT id, image_paths_json FROM infographics WHERE recording_id = ?',
+      [recordingId]
+    );
+    const dir = getInfographicDir();
+    if (!fs.existsSync(dir)) return res.json({ rescued: 0, scanned: 0, files: [] });
+
+    const allFiles = fs.readdirSync(dir);
+    let rescued = 0;
+    const report = [];
+
+    for (const row of rows) {
+      let existing = [];
+      try { existing = JSON.parse(row.image_paths_json || '[]'); } catch {}
+      // Match BOTH legacy and new filename formats:
+      //   legacy: rec_<recordingId>_ig_<rowId>_<n>.png
+      //   new:    rec_<recordingId>_ig_<rowId>_<timestamp>_<n>.png
+      const legacy = new RegExp(`^rec_${recordingId}_ig_${row.id}_\\d+\\.png$`);
+      const dated  = new RegExp(`^rec_${recordingId}_ig_${row.id}_\\d{10,}_\\d+\\.png$`);
+      const matches = allFiles
+        .filter((f) => dated.test(f) || legacy.test(f))
+        .sort(); // deterministic order — timestamps then 1-based n
+
+      if (matches.length > 0 && (existing.length === 0 || existing.length !== matches.length)) {
+        execute(
+          'UPDATE infographics SET image_paths_json = ? WHERE id = ?',
+          [JSON.stringify(matches), row.id]
+        );
+        rescued++;
+        report.push({ id: row.id, before: existing, after: matches });
+      }
+    }
+
+    res.json({ rescued, scanned: rows.length, dir, report });
+  } catch (err) {
+    console.error('Rescue infographics error:', err);
+    res.status(500).json({ error: err.message || 'rescue failed' });
   }
 });
 
@@ -375,7 +538,7 @@ router.post('/presets', upload.array('reference_images', 8), (req, res) => {
       }
     }
 
-    execute(
+    const id = executeReturningId(
       `INSERT INTO infographic_presets (name, reference_image_paths_json, default_style, default_aspect_ratio, notes)
        VALUES (?, ?, ?, ?, ?)`,
       [
@@ -386,7 +549,6 @@ router.post('/presets', upload.array('reference_images', 8), (req, res) => {
         req.body.notes || null,
       ]
     );
-    const id = lastInsertRowId();
     const preset = queryOne('SELECT * FROM infographic_presets WHERE id = ?', [id]);
     res.status(201).json({ preset });
   } catch (err) {

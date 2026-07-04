@@ -2,8 +2,10 @@ import { queryOne } from '../db/database.js';
 import { getCurrentTier } from '../middleware/tier.js';
 import { getProcessingMode } from './processing-mode.js';
 
-// Default Worker URL — override via settings if needed
-const DEFAULT_WORKER_URL = 'https://voicescope-api.tka1478.workers.dev';
+// Default Worker URL — override via settings if needed.
+// Per 2026-05-02 decision: worker name is `voicescope` (was `voicescope-api`).
+// Account workers.dev subdomain is `voicescope` (registered 2026-07-03).
+const DEFAULT_WORKER_URL = 'https://voicescope.voicescope.workers.dev';
 
 /**
  * Check if the app should use managed mode (Worker proxy) for API calls.

@@ -10,31 +10,41 @@ import { useAppStore } from '../stores/appStore'
 
 const ASPECT_OPTIONS = [
   { value: '2:3', label: '2:3 縦長 (1024×1536)', size: '1024×1536', isDefault: true },
-  { value: '9:16', label: '9:16 縦長 (Story / Reels)', size: '1024×1536', note: 'gpt-image-1 では 1024x1536 にマッピング' },
-  { value: '1:1', label: '1:1 正方形 (Instagram)', size: '1024×1024' },
-  { value: '3:2', label: '3:2 横長', size: '1536×1024' },
-  { value: '16:9', label: '16:9 横長 (YouTube)', size: '1536×1024', note: 'gpt-image-1 では 1536x1024 にマッピング' },
+  { value: '9:16', label: '9:16 縦長 Story/Reels (1024×1824)', size: '1024×1824' },
+  { value: '1:1', label: '1:1 正方形 Instagram (1024×1024)', size: '1024×1024' },
+  { value: '3:2', label: '3:2 横長 (1536×1024)', size: '1536×1024' },
+  { value: '16:9', label: '16:9 横長 YouTube (1824×1024)', size: '1824×1024' },
+  { value: '4:5', label: '4:5 縦 (1024×1280)', size: '1024×1280' },
 ]
 
+// gpt-image-2 token-based pricing (USD per image, 1024x1024 baseline).
+// We default to 'low' because empirical testing showed it produces
+// production-quality output with accurate Japanese text rendering for
+// our infographic use case. Auto is available but tends to pick
+// medium/high for complex prompts which is overkill (10x cost) for
+// most use cases — let the user opt in to higher quality only when
+// they actually need it.
 const QUALITY_OPTIONS = [
-  { value: 'low', label: 'Low（最安・$0.02）', desc: '試し打ちに最適' },
-  { value: 'medium', label: 'Medium（推奨・$0.07）', desc: 'バランス良い品質' },
-  { value: 'high', label: 'High（最高品質・$0.19）', desc: '配布物・本番用' },
+  { value: 'low', label: 'Low（推奨・$0.006）', desc: '実測: 日本語テキストも十分な品質' },
+  { value: 'auto', label: 'Auto（OpenAI が自動判定）', desc: 'medium 程度に着地しがち、コスト読めず' },
+  { value: 'medium', label: 'Medium（$0.053）', desc: 'バランス良い品質' },
+  { value: 'high', label: 'High（$0.211）', desc: '配布物・本番用' },
 ]
 
-const MODEL_OPTIONS = [
-  { value: 'gpt-image-1', label: 'gpt-image-1（標準）' },
-  { value: 'gpt-image-1-mini', label: 'gpt-image-1-mini（低価格）' },
-]
+// gpt-image-2 only — gpt-image-1 / 1-mini / 1.5 cannot reliably render
+// Japanese text and are unusable for this feature.
+const DEFAULT_MODEL = 'gpt-image-2'
 
 /**
  * Modal-based studio for generating an infographic from a recording's summary.
  * Two-stage flow:
  *   1. "structure" — LLM splits / structures content into a JSON layout
- *   2. "generate" — gpt-image-1 renders the chosen layout into a PNG
+ *   2. "generate" — gpt-image-2 renders the chosen layout into a PNG
  */
 export default function InfographicModal({ recordingId, onClose, onGenerated }) {
   const addToast = useAppStore((s) => s.addToast)
+  const startInfographicGeneration = useAppStore((s) => s.startInfographicGeneration)
+  const endInfographicGeneration = useAppStore((s) => s.endInfographicGeneration)
 
   // Stage 1 — structuring
   const [mode, setMode] = useState('whole') // 'whole' | 'split'
@@ -45,11 +55,12 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
 
   // Stage 2 — generation options
   const [styles, setStyles] = useState([])
+  const [structurerInfo, setStructurerInfo] = useState(null) // { provider, model }
   const [style, setStyle] = useState('natural')
   const [customPrompt, setCustomPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState('2:3')
-  const [quality, setQuality] = useState('medium')
-  const [model, setModel] = useState('gpt-image-1')
+  const [quality, setQuality] = useState('low')
+  const [model] = useState(DEFAULT_MODEL) // gpt-image-2 fixed
   const [n, setN] = useState(1)
 
   // Reference images (per-call upload)
@@ -65,7 +76,10 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
   const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
-    getInfographicStyles().then((data) => setStyles(data.styles || [])).catch(() => {})
+    getInfographicStyles().then((data) => {
+      setStyles(data.styles || [])
+      if (data.structurer) setStructurerInfo(data.structurer)
+    }).catch(() => {})
     listInfographicPresets().then(async (data) => {
       const list = data.presets || []
       setPresets(list)
@@ -103,10 +117,8 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
   const handleGenerate = async () => {
     setGenerating(true)
     try {
-      // Auto-structure if the user forgot to click 構造化を実行 first.
-      // Generate is the obvious "go" button, so we treat structuring as
-      // an implicit step — only required to be explicit if the user wants
-      // to inspect / pick a topic before hitting Generate.
+      // Phase 1 — synchronous: structuring (a few seconds) blocks the modal
+      // because the user needs to see what's being generated. This is fast.
       let activeStructure = structure
       if (!activeStructure) {
         addToast('構造化を自動実行しています...', 'info')
@@ -127,19 +139,27 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
       let payload = activeStructure
       let blockIdForRequest
       if (mode === 'split') {
-        // If split-mode auto-structuring just happened, use the first topic.
-        // Otherwise use whatever the user picked.
         const targetId = selectedTopicId || activeStructure?.topics?.[0]?.id
         const topic = activeStructure?.topics?.find((t) => t.id === targetId)
         if (!topic) {
           addToast('生成するトピックがありません', 'error')
+          setGenerating(false)
           return
         }
         payload = topic
         blockIdForRequest = targetId
       }
 
-      const res = await generateInfographic(recordingId, {
+      // Phase 2 — fire-and-forget: image generation can take 30-60s with
+      // gpt-image-2. Close modal immediately and track the in-flight
+      // generation in the global store so the gallery can show a "生成中..."
+      // placeholder and the dashboard can show a pulsing badge on the
+      // recording card.
+      startInfographicGeneration(recordingId)
+      addToast(`画像生成を開始しました（${n}枚）`, 'info', 4000)
+      onClose()
+
+      generateInfographic(recordingId, {
         structure: payload,
         style,
         custom_prompt: customPrompt || undefined,
@@ -151,9 +171,18 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
         preset_id: selectedPresetId || undefined,
         reference_images: referenceFiles,
       })
-      addToast(`画像を生成しました（${n}枚）`, 'success')
-      onGenerated?.(res.infographic)
-      onClose()
+        .then((res) => {
+          addToast(`✅ 画像生成完了（${n}枚）`, 'success')
+          onGenerated?.(res.infographic)
+        })
+        .catch((err) => {
+          addToast(`❌ 画像生成失敗: ${err.message || 'unknown'}`, 'error', 10000)
+          onGenerated?.(null)
+        })
+        .finally(() => {
+          endInfographicGeneration(recordingId)
+        })
+      return
     } catch (err) {
       addToast(err.message || '画像生成に失敗しました', 'error')
     } finally {
@@ -171,26 +200,62 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
   }
 
   const estimatedCost = (() => {
-    const pricing = { low: 0.02, medium: 0.07, high: 0.19 }
-    const miniPricing = { low: 0.005, medium: 0.011, high: 0.05 }
-    const p = model === 'gpt-image-1-mini' ? miniPricing : pricing
-    return (p[quality] || 0.07) * n
+    // gpt-image-2 token-based pricing (1024x1024 baseline). Larger sizes
+    // cost more, smaller sizes cost slightly less, but this is a UI estimate.
+    // For 'auto' we don't know upfront — OpenAI picks at generation time —
+    // so we display medium as a typical estimate.
+    const pricing = { low: 0.006, medium: 0.053, high: 0.211 }
+    const per = quality === 'auto' ? pricing.medium : (pricing[quality] || 0.053)
+    return per * n
   })()
+  const isAutoQuality = quality === 'auto'
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+    // Outer scroll wrapper. Items-start so tall modals start at top instead
+    // of being centered (and clipped) on small windows.
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div
-        className="bg-card border border-theme-light rounded-xl max-w-3xl w-full p-6 shadow-2xl my-8"
+        // max-h-[calc(100vh-4rem)] caps the modal at viewport - margin and
+        // we make the body itself scroll so footer (キャンセル / 画像を生成)
+        // stays reachable on any window height.
+        className="bg-card border border-theme-light rounded-xl max-w-3xl w-full shadow-2xl my-8 flex flex-col max-h-[calc(100vh-4rem)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between p-6 pb-3 border-b border-theme/40 flex-shrink-0">
           <h2 className="text-lg font-semibold text-white">🎨 インフォグラフィック生成</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">✕</button>
+        </div>
+        {/* Scrollable body — wraps everything between header and footer */}
+        <div className="flex-1 overflow-y-auto p-6 pt-4">
+
+        {/* gpt-image-2 verification notice */}
+        <div className="mb-4 bg-amber-900/20 border border-amber-700/40 rounded p-2.5 text-[11px] text-amber-100">
+          <strong className="text-amber-300">⚠ 初回のみ: OpenAI 組織認証が必要</strong>
+          <p className="text-amber-100/80 mt-1 leading-relaxed">
+            gpt-image-2 は OpenAI の <strong>Verified Organization</strong> 限定モデルです。
+            未認証だと <code className="text-amber-300">403 Your organization must be verified</code> が返ります。
+          </p>
+          <ol className="text-amber-100/70 mt-1 ml-4 list-decimal space-y-0.5">
+            <li>
+              <a href="https://platform.openai.com/settings/organization/general" target="_blank" rel="noopener noreferrer" className="underline text-amber-200">
+                platform.openai.com/settings/organization/general
+              </a> を開く
+            </li>
+            <li>「Verify Organization」をクリック → 政府発行ID（パスポート/運転免許証）と顔認証で本人確認</li>
+            <li>認証完了後、<strong>最大15分</strong> でAPIアクセスが反映されます</li>
+          </ol>
+          <p className="text-amber-100/50 text-[10px] mt-1">※ ID 1枚で 90日間に1組織のみ認証可能</p>
         </div>
 
         {/* Stage 1: structure */}
         <section className="mb-6">
           <h3 className="text-sm font-semibold text-white mb-2">① 内容を構造化</h3>
+          {structurerInfo && (
+            <p className="text-[10px] text-gray-500 ml-2 mb-1">
+              構造化LLM: <span className="text-gray-300">{structurerInfo.provider} / {structurerInfo.model}</span>
+              <span className="text-gray-500 ml-1">（設定 → AI設定 で変更可）</span>
+            </p>
+          )}
           <div className="space-y-2 ml-2">
             <div className="flex gap-3 text-xs text-gray-300">
               <label className="flex items-center gap-1.5 cursor-pointer">
@@ -385,14 +450,8 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
               )}
             </div>
 
-            {/* Quality / Model / Aspect */}
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">モデル</label>
-                <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-input border border-theme-light rounded px-2 py-1.5 text-xs text-white">
-                  {MODEL_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
-              </div>
+            {/* Quality / 枚数 */}
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">品質</label>
                 <select value={quality} onChange={(e) => setQuality(e.target.value)} className="w-full bg-input border border-theme-light rounded px-2 py-1.5 text-xs text-white">
@@ -410,21 +469,27 @@ export default function InfographicModal({ recordingId, onClose, onGenerated }) 
             <div>
               <label className="block text-xs text-gray-400 mb-1">アスペクト比</label>
               <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="w-full bg-input border border-theme-light rounded px-2 py-1.5 text-xs text-white">
-                {ASPECT_OPTIONS.map(a => <option key={a.value} value={a.value}>{a.label}{a.note ? ` ※ ${a.note}` : ''}</option>)}
+                {ASPECT_OPTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
               </select>
+              <p className="text-[10px] text-gray-500 mt-1">
+                モデル: <span className="text-gray-300">gpt-image-2</span>（日本語テキスト描画対応・固定）
+              </p>
             </div>
 
             {/* Cost estimate */}
             <div className="bg-blue-900/20 border border-blue-700/40 rounded px-2 py-1.5 text-[11px] text-gray-300">
-              💰 推定コスト: <strong className="text-white">${estimatedCost.toFixed(3)}</strong>
-              （約 ¥{(estimatedCost * 150).toFixed(0)}）
+              💰 推定コスト: <strong className="text-white">{isAutoQuality ? '〜' : ''}${estimatedCost.toFixed(3)}</strong>
+              （約 {isAutoQuality ? '〜' : ''}¥{(estimatedCost * 150).toFixed(0)}）
               <span className="text-gray-400 ml-2">{quality} × {n}枚</span>
+              {isAutoQuality && (
+                <span className="text-gray-400 ml-2">※ Auto は最終的な品質によって $0.006〜$0.211/枚 で変動</span>
+              )}
             </div>
           </div>
         </section>
-
-        {/* Footer actions */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-theme">
+        </div>
+        {/* Sticky footer — stays visible regardless of scroll position. */}
+        <div className="flex justify-end gap-2 p-4 border-t border-theme bg-card flex-shrink-0">
           <button onClick={onClose} className="text-sm text-gray-400 hover:text-white px-4 py-2">
             キャンセル
           </button>

@@ -16,6 +16,15 @@ const providers = {
   custom: summarizeWithCustom,
 };
 
+function inferProviderFromModel(model) {
+  if (!model) return null;
+  if (model.startsWith('gpt-')) return 'openai';
+  if (model.startsWith('gemini-')) return 'gemini';
+  if (model.startsWith('grok-')) return 'grok';
+  if (model.startsWith('claude-')) return 'claude';
+  return null;
+}
+
 export async function summarize(transcriptionText, options = {}) {
   // Determine template
   let template = null;
@@ -33,8 +42,8 @@ export async function summarize(transcriptionText, options = {}) {
   }
 
   // Determine provider and model
-  let provider = options.provider || template.preferred_llm_provider;
   let model = options.model || template.preferred_llm_model;
+  let provider = options.provider || inferProviderFromModel(model) || template.preferred_llm_provider;
 
   if (!provider) {
     const setting = queryOne("SELECT value FROM settings WHERE key = 'default_summary_provider'");
@@ -76,10 +85,11 @@ export async function summarize(transcriptionText, options = {}) {
   const content = await summarizeFn(transcriptionText, systemPrompt, { model });
 
   return {
-    templateId: template.id,
+    templateId: options.customPrompt ? null : template.id,
     provider,
     model,
     granularity,
+    customPrompt: options.customPrompt || null,
     content,
   };
 }

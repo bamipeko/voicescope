@@ -1,0 +1,314 @@
+[
+  {
+    "recording_id": "txt_20260413081119_30eccd75727fcf68",
+    "transcription_id": 14,
+    "title": "txt_20260413081119_30eccd75727fcf68",
+    "recorded_at": null,
+    "exported_file": "latest\\20260413_081119_txt_20260413081119_30eccd75727fcf68.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260422030739",
+    "transcription_id": 29,
+    "title": "rec_20260422030739",
+    "recorded_at": null,
+    "exported_file": "latest\\20260422_030753_rec_20260422030739.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260402074846",
+    "transcription_id": 1,
+    "title": "録音 環境 が 整っ て る か な と いう ところ で は い じゃあ 今 日 から ね",
+    "recorded_at": "2026-04-02T07:48:46.597Z",
+    "exported_file": "latest\\20260402_164846_録音 環境 が 整っ て る か な と いう ところ で は い じゃあ 今 日 から ね.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260402152911",
+    "transcription_id": 2,
+    "title": "推し活コミュニティでの古参メンバーによるマウントへの対処法",
+    "recorded_at": "2026-04-02T15:29:11.287Z",
+    "exported_file": "latest\\20260403_002911_推し活コミュニティでの古参メンバーによるマウントへの対処法.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260402162329",
+    "transcription_id": 3,
+    "title": "ロキットを眼鏡に装着可能にするアタッチメントのアイデア提案",
+    "recorded_at": "2026-04-02T16:23:29.894Z",
+    "exported_file": "latest\\20260403_012329_ロキットを眼鏡に装着可能にするアタッチメントのアイデア提案.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260403234826",
+    "transcription_id": 4,
+    "title": "オンラインサロン運営者が抱える悩みを解決する実践的アドバイス",
+    "recorded_at": "2026-04-03T23:48:26.202Z",
+    "exported_file": "latest\\20260404_084826_オンラインサロン運営者が抱える悩みを解決する実践的アドバイス.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260404143736",
+    "transcription_id": 5,
+    "title": "使用マイクの確認と音声録音テストの実施",
+    "recorded_at": "2026-04-04T14:37:36.613Z",
+    "exported_file": "latest\\20260404_233736_使用マイクの確認と音声録音テストの実施.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260406131151",
+    "transcription_id": 6,
+    "title": "録音中のCPU使用率について",
+    "recorded_at": "2026-04-06T13:11:51.509Z",
+    "exported_file": "latest\\20260406_221151_録音中のCPU使用率について.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260406140119",
+    "transcription_id": 7,
+    "title": "Mac版ソフトの可能性についての話",
+    "recorded_at": "2026-04-06T14:01:19.816Z",
+    "exported_file": "latest\\20260406_230119_Mac版ソフトの可能性についての話.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260406141017",
+    "transcription_id": 8,
+    "title": "ローカルLM対応の変化と影響",
+    "recorded_at": "2026-04-06T14:10:17.382Z",
+    "exported_file": "latest\\20260406_231017_ローカルLM対応の変化と影響.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260406141131",
+    "transcription_id": 9,
+    "title": "フィジカルAIの普及と可能性",
+    "recorded_at": "2026-04-06T14:11:31.836Z",
+    "exported_file": "latest\\20260406_231131_フィジカルAIの普及と可能性.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260407114112",
+    "transcription_id": 10,
+    "title": "オンラインサロンのマネタイズ悩み",
+    "recorded_at": "2026-04-07T11:41:12.912Z",
+    "exported_file": "latest\\20260407_204112_オンラインサロンのマネタイズ悩み.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260409043549",
+    "transcription_id": 11,
+    "title": "安価なAIで全文処理と選別精度向上",
+    "recorded_at": "2026-04-09T04:35:49.091Z",
+    "exported_file": "latest\\20260409_133549_安価なAIで全文処理と選別精度向上.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260410090713",
+    "transcription_id": 12,
+    "title": "7000人を集めたサロン運営者が伝えるコミュニティの悩み",
+    "recorded_at": "2026-04-10T09:07:13.963Z",
+    "exported_file": "latest\\20260410_180713_7000人を集めたサロン運営者が伝えるコミュニティの悩み.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260412031345",
+    "transcription_id": 13,
+    "title": "オンラインサロン運営の悩みと録画活用",
+    "recorded_at": "2026-04-12T03:13:45.651Z",
+    "exported_file": "latest\\20260412_121345_オンラインサロン運営の悩みと録画活用.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "txt_20260413082449_515dc32d96893393",
+    "transcription_id": 15,
+    "title": "é³å£° 260413_125928_original",
+    "recorded_at": "2026-04-13T08:24:49.846Z",
+    "exported_file": "latest\\20260413_172449_é³å£° 260413_125928_original.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "txt_20260413092742_907116b8df18f76e",
+    "transcription_id": 16,
+    "title": "é³å£° 260413_130843_original",
+    "recorded_at": "2026-04-13T09:27:42.630Z",
+    "exported_file": "latest\\20260413_182742_é³å£° 260413_130843_original.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "txt_20260413092941_26905a58f0e5cd60",
+    "transcription_id": 17,
+    "title": "é³å£° 260413_125928_original (1)",
+    "recorded_at": "2026-04-13T09:29:41.150Z",
+    "exported_file": "latest\\20260413_182941_é³å£° 260413_125928_original (1).txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "txt_20260413122759_f95774db0a0820b7",
+    "transcription_id": 18,
+    "title": "é³å£° 260413_130843_original",
+    "recorded_at": "2026-04-13T12:27:59.791Z",
+    "exported_file": "latest\\20260413_212759_é³å£° 260413_130843_original.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "txt_20260416092602_78e959f7882d34ea",
+    "transcription_id": 19,
+    "title": "情報社会が生む世間の狭さと認識の分断による弊害",
+    "recorded_at": "2026-04-16T09:26:02.882Z",
+    "exported_file": "latest\\20260416_182602_情報社会が生む世間の狭さと認識の分断による弊害.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260416143242",
+    "transcription_id": 20,
+    "title": "SaaS開発における初期費用設定の見直しとプロジェクト進捗の現状報告",
+    "recorded_at": "2026-04-16T14:32:42.147Z",
+    "exported_file": "latest\\20260416_233242_SaaS開発における初期費用設定の見直しとプロジェクト進捗の現状報告.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260416151221",
+    "transcription_id": 21,
+    "title": "過疎化した趣味系Discordサーバーを再び盛り上げるための活性化戦略",
+    "recorded_at": "2026-04-16T15:12:21.474Z",
+    "exported_file": "latest\\20260417_001221_過疎化した趣味系Discordサーバーを再び盛り上げるための活性化戦略.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260417013122",
+    "transcription_id": 22,
+    "title": "ファンコミュニティのアカウントが誤判定で凍結された際の対処法と心構え",
+    "recorded_at": "2026-04-17T01:31:22.900Z",
+    "exported_file": "latest\\20260417_103122_ファンコミュニティのアカウントが誤判定で凍結された際の対処法と心構え.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260417151630",
+    "transcription_id": 23,
+    "title": "サロンの理念と提供内容の乖離が招く悪影響と運営方針の重要性",
+    "recorded_at": "2026-04-17T15:16:30.887Z",
+    "exported_file": "latest\\20260418_001630_サロンの理念と提供内容の乖離が招く悪影響と運営方針の重要性.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260420131947",
+    "transcription_id": 24,
+    "title": "AIコンテストの実態は企業のPR案件であり審査体制も形骸化している",
+    "recorded_at": "2026-04-20T13:19:47.782Z",
+    "exported_file": "latest\\20260420_221947_AIコンテストの実態は企業のPR案件であり審査体制も形骸化している.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260420152903",
+    "transcription_id": 25,
+    "title": "デジタル時代の今こそ再評価されるフィジカル広告の宣伝効果",
+    "recorded_at": "2026-04-20T15:29:03.342Z",
+    "exported_file": "latest\\20260421_002903_デジタル時代の今こそ再評価されるフィジカル広告の宣伝効果.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260420171418",
+    "transcription_id": 26,
+    "title": "コミュニティ運営における外部コラボ失敗後の立て直しと信頼回復策",
+    "recorded_at": "2026-04-20T17:14:18.967Z",
+    "exported_file": "latest\\20260421_021418_コミュニティ運営における外部コラボ失敗後の立て直しと信頼回復策.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260421015713",
+    "transcription_id": 27,
+    "title": "クリエイター向けコミュニティの外部企業コラボを巡る運営の対立解消法",
+    "recorded_at": "2026-04-21T01:57:13.127Z",
+    "exported_file": "latest\\20260421_105713_クリエイター向けコミュニティの外部企業コラボを巡る運営の対立解消法.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260421022903",
+    "transcription_id": 28,
+    "title": "予期せず停止してしまった録音データについての困惑",
+    "recorded_at": "2026-04-21T02:29:03.940Z",
+    "exported_file": "latest\\20260421_112903_予期せず停止してしまった録音データについての困惑.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260422114108",
+    "transcription_id": 30,
+    "title": "突然の録音停止トラブルに関する考察と原因の究明",
+    "recorded_at": "2026-04-22T11:41:08.286Z",
+    "exported_file": "latest\\20260422_204108_突然の録音停止トラブルに関する考察と原因の究明.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260427154334",
+    "transcription_id": 31,
+    "title": "AIの進化で割を食う初級者とプロへの成長過程における苦悩",
+    "recorded_at": "2026-04-27T15:43:34.700Z",
+    "exported_file": "latest\\20260428_004334_AIの進化で割を食う初級者とプロへの成長過程における苦悩.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260428022807",
+    "transcription_id": 42,
+    "title": "金銭的な必要性と現状の生活のバランスに関する対話",
+    "recorded_at": "2026-04-28T02:28:07.808Z",
+    "exported_file": "latest\\20260428_112807_金銭的な必要性と現状の生活のバランスに関する対話.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260501152954",
+    "transcription_id": 49,
+    "title": "広告停止の影響による請求額の減少に関する状況確認",
+    "recorded_at": "2026-05-01T15:29:54.595Z",
+    "exported_file": "latest\\20260502_002954_広告停止の影響による請求額の減少に関する状況確認.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260502013053",
+    "transcription_id": 44,
+    "title": "AIの進化と開発環境のトレンド変化に関する雑談ライブ",
+    "recorded_at": "2026-05-02T01:30:53.977Z",
+    "exported_file": "latest\\20260502_103053_AIの進化と開発環境のトレンド変化に関する雑談ライブ.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260508134520",
+    "transcription_id": 45,
+    "title": "営業されて嬉しいと感じる条件は尊敬や信頼関係にあるという考察",
+    "recorded_at": "2026-05-08T13:45:20.365Z",
+    "exported_file": "latest\\20260508_224520_営業されて嬉しいと感じる条件は尊敬や信頼関係にあるという考察.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260509004603",
+    "transcription_id": 46,
+    "title": "日程変更と打ち合わせ内容に関する確認と調整のやり取り",
+    "recorded_at": "2026-05-09T00:46:03.483Z",
+    "exported_file": "latest\\20260509_094603_日程変更と打ち合わせ内容に関する確認と調整のやり取り.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260509153636",
+    "transcription_id": 47,
+    "title": "オンライン会議の開始時におけるセキュリティと接続確認の調整",
+    "recorded_at": "2026-05-09T15:36:36.686Z",
+    "exported_file": "latest\\20260510_003636_オンライン会議の開始時におけるセキュリティと接続確認の調整.txt",
+    "source": "refined"
+  },
+  {
+    "recording_id": "rec_20260509165551",
+    "transcription_id": 48,
+    "title": "AIへの期待と失望が招く疲弊とクリエイティビティの本質",
+    "recorded_at": "2026-05-09T16:55:51.780Z",
+    "exported_file": "latest\\20260510_015551_AIへの期待と失望が招く疲弊とクリエイティビティの本質.txt",
+    "source": "original"
+  },
+  {
+    "recording_id": "rec_20260513084709",
+    "transcription_id": 50,
+    "title": "[復元] 2026/5/13 15:02:41",
+    "recorded_at": "2026-05-13T08:47:09.491Z",
+    "exported_file": "latest\\20260513_174709_[復元] 2026_5_13 15_02_41.txt",
+    "source": "refined"
+  }
+]

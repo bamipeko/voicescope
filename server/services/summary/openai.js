@@ -13,7 +13,7 @@ export async function summarizeWithOpenAI(text, systemPrompt, options = {}) {
     client = new OpenAI({ apiKey });
   }
 
-  const model = options.model || 'gpt-5.4-nano';
+  const model = options.model || 'gpt-5.4-mini';
 
   const response = await client.chat.completions.create({
     model,

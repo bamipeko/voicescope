@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { getRecordings, uploadRecording, uploadText, trashRecording, archiveRecording, updateRecording, getTags, getFolders, getTemplates } from '../lib/api'
+import { getRecordings, uploadRecording, uploadText, trashRecording, archiveRecording, updateRecording, getTags, getFolders, getTemplates, getSettings } from '../lib/api'
 import { formatDateTime } from '../lib/date'
 import { getAvailableModels, PROVIDER_LABELS, getDefaultModel } from '../lib/models'
 import { useAppStore } from '../stores/appStore'
@@ -26,6 +26,14 @@ function formatDuration(sec) {
 // formatDate — use shared helper
 const formatDate = formatDateTime
 
+const makeUploadOptions = (autoSummarize = true) => ({
+  auto_summarize: autoSummarize,
+  template_id: '',
+  granularity: 'normal',
+  provider: '',
+  model: '',
+})
+
 export default function Dashboard() {
   const [recordings, setRecordings] = useState([])
   const [allTags, setAllTags] = useState([])
@@ -37,6 +45,11 @@ export default function Dashboard() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [includeArchived, setIncludeArchived] = useState(false)
   const addToast = useAppStore((s) => s.addToast)
+  // Pending infographic generations — keyed by recordingId. Shows a pulse
+  // badge on the card while the image is cooking in the background.
+  // MUST be declared before the useEffect that depends on it, otherwise
+  // we hit a TDZ ("Cannot access before initialization") on initial render.
+  const pendingInfographics = useAppStore((s) => s.pendingInfographics)
   const [searchParams] = useSearchParams()
   const folderFilter = searchParams.get('folder') || ''
   const [currentFolder, setCurrentFolder] = useState(null)
@@ -73,6 +86,23 @@ export default function Dashboard() {
   }, [search, tagFilter, folderFilter, importanceFilter, includeArchived, addToast])
 
   useEffect(() => { fetchData(true) }, [fetchData])
+
+  // When an infographic generation completes (a recording's pending count
+  // drops back to 0), refresh the dashboard so the 🎨 N badge appears
+  // without requiring the user to re-filter.
+  const prevPendingKeysRef = useRef('')
+  useEffect(() => {
+    const keys = Object.keys(pendingInfographics).sort().join(',')
+    const prev = prevPendingKeysRef.current
+    if (prev && prev !== keys) {
+      // Transition detected — reload after a short delay so the server has
+      // committed the row update.
+      const t = setTimeout(() => fetchData(false), 800)
+      prevPendingKeysRef.current = keys
+      return () => clearTimeout(t)
+    }
+    prevPendingKeysRef.current = keys
+  }, [pendingInfographics, fetchData])
 
   // Show refine warnings as toasts — once per recording, then auto-acknowledge.
   // refine_warning is set by the server when primary provider failed (quota, rate, etc.)
@@ -125,14 +155,22 @@ export default function Dashboard() {
 
   // Upload dialog state
   const [uploadDialogFiles, setUploadDialogFiles] = useState(null) // show dialog when set
-  const [uploadOptions, setUploadOptions] = useState({ auto_summarize: true, template_id: '', granularity: 'normal', provider: '', model: '' })
+  const [defaultAutoSummarize, setDefaultAutoSummarize] = useState(true)
+  const [uploadOptions, setUploadOptions] = useState(makeUploadOptions(true))
   const [uploadTemplates, setUploadTemplates] = useState([])
   const tierInfo = useAppStore((s) => s.tierInfo)
   const { providers: availProviders, models: availModels } = getAvailableModels(tierInfo, 'summary')
 
   const handleFilesSelected = (files) => {
     if (files.length === 0) return
-    // Load templates for the dialog
+    // Load settings/templates for the dialog
+    getSettings().then((settings) => {
+      const auto = settings.auto_summarize_uploads !== false && settings.auto_summarize_uploads !== 'false'
+      setDefaultAutoSummarize(auto)
+      setUploadOptions(makeUploadOptions(auto))
+    }).catch(() => {
+      setUploadOptions(makeUploadOptions(defaultAutoSummarize))
+    })
     getTemplates().then(setUploadTemplates).catch(() => {})
     setUploadDialogFiles(files)
   }
@@ -451,6 +489,25 @@ export default function Dashboard() {
                       {rec.title || rec.id}
                     </h3>
                     <StatusBadge status={rec.status} />
+                    {/* Infographic badge — present only when this recording has
+                        at least one usable PNG. Shorthand visual signal that
+                        avoids requiring users to click in to find out. */}
+                    {rec.infographic_count > 0 && (
+                      <span
+                        className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-purple-900/40 text-purple-200 border border-purple-700/40"
+                        title={`生成済みインフォグラフィック: ${rec.infographic_count}件`}
+                      >
+                        🎨 {rec.infographic_count}
+                      </span>
+                    )}
+                    {pendingInfographics[rec.id]?.count > 0 && (
+                      <span
+                        className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-purple-700/60 text-white animate-pulse"
+                        title="画像を生成中..."
+                      >
+                        🎨 生成中...
+                      </span>
+                    )}
                     <button
                       onClick={(e) => {
                         e.preventDefault()

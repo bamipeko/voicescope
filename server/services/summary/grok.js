@@ -14,7 +14,7 @@ export async function summarizeWithGrok(text, systemPrompt, options = {}) {
     client = new OpenAI({ apiKey, baseURL: 'https://api.x.ai/v1' });
   }
 
-  const model = options.model || 'grok-4-1-fast-non-reasoning';
+  const model = options.model || 'grok-4.3';
 
   const response = await client.chat.completions.create({
     model,

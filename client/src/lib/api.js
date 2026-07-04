@@ -171,6 +171,20 @@ export const generateInfographic = async (recordingId, options) => {
 export const listInfographics = (recordingId) =>
   request(`/infographic/recordings/${recordingId}/list`);
 
+// Scan disk for orphaned image files and rebuild image_paths_json on rows
+// whose paths were lost (e.g. SDK response shape mismatch). Safe to call.
+export const rescueInfographics = (recordingId) =>
+  request(`/infographic/recordings/${recordingId}/rescue`, { method: 'POST' });
+
+// List every PNG on disk for this recording (independent of DB) — used
+// to diagnose "where did my old images go" questions.
+export const listInfographicDiskFiles = (recordingId) =>
+  request(`/infographic/recordings/${recordingId}/disk-files`);
+
+// Open the infographics folder in the OS file manager.
+export const revealInfographicDir = (recordingId) =>
+  request(`/infographic/recordings/${recordingId}/reveal-dir`, { method: 'POST' });
+
 export const deleteInfographic = (id) =>
   request(`/infographic/${id}`, { method: 'DELETE' });
 

@@ -102,8 +102,8 @@ function getRefineConfig() {
 
   // Online-capable modes: prefer cloud (faster), local as last resort
   if (process.env.OPENAI_API_KEY) return { provider: 'openai', model: 'gpt-5-nano' };
-  if (process.env.GEMINI_API_KEY) return { provider: 'gemini', model: 'gemini-3.1-flash-lite-preview' };
-  if (process.env.GROK_API_KEY) return { provider: 'grok', model: 'grok-4-1-fast-non-reasoning' };
+  if (process.env.GEMINI_API_KEY) return { provider: 'gemini', model: 'gemini-2.5-flash-lite' };
+  if (process.env.GROK_API_KEY) return { provider: 'grok', model: 'grok-4.3' };
   if (process.env.ANTHROPIC_API_KEY) return { provider: 'claude', model: 'claude-haiku-4-5-20251001' };
 
   // No cloud keys → fall back to local

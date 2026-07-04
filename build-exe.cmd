@@ -4,6 +4,19 @@ echo   VoiceScope .exe Build Script
 echo ========================================
 echo.
 
+:: Parse flags. Accepted in any order:
+::   --no-pause      Don't pause at the end (used when chained from update.cmd)
+::   --no-explorer   Don't open dist-electron folder after success
+set NO_PAUSE=
+set NO_EXPLORER=
+:parse_args
+if "%~1"=="" goto :args_done
+if /i "%~1"=="--no-pause"    set NO_PAUSE=1
+if /i "%~1"=="--no-explorer" set NO_EXPLORER=1
+shift
+goto :parse_args
+:args_done
+
 set LOCAL_DIR=C:\projects\voicescope-build
 :: %~dp0 ends with \ which breaks quoted paths in robocopy
 set NAS_DIR=%~dp0
@@ -61,9 +74,13 @@ dir /b "%LOCAL_DIR%\dist-electron\VoiceScope Setup*.exe" 2>nul
 if %ERRORLEVEL%==0 (
     echo.
     echo Output: %LOCAL_DIR%\dist-electron\
-    explorer "%LOCAL_DIR%\dist-electron"
+    if not defined NO_EXPLORER explorer "%LOCAL_DIR%\dist-electron"
 ) else (
     echo Build failed. Check the errors above.
+    if defined NO_PAUSE exit /b 1
 )
 echo.
+:: Skip pause when invoked from update.cmd (workflow chains build -> install -> launch)
+if defined NO_PAUSE goto :end
 pause
+:end

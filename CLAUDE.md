@@ -1,5 +1,7 @@
 # VoiceScope — Claude Code Rules
 
+@AGENTS.md
+
 ## Language
 - Code and comments: English
 - UI text: Japanese

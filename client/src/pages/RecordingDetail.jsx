@@ -18,6 +18,7 @@ import { parseDate, formatDateTime, formatDateTimeShort } from '../lib/date'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
 import InfographicModal from '../components/InfographicModal'
+import ImageLightbox from '../components/ImageLightbox'
 import { listInfographics, deleteInfographic, getInfographicImageUrl, revealInfographic } from '../lib/api'
 
 function lightenColor(hex) {
@@ -64,6 +65,10 @@ export default function RecordingDetail() {
   const navigate = useNavigate()
   const addToast = useAppStore((s) => s.addToast)
   const tierInfo = useAppStore((s) => s.tierInfo)
+  // Watch this recording's pending generation count so we can show a
+  // "生成中..." placeholder card. Auto-refreshes the gallery when the
+  // count drops back to 0 (i.e. generation finished).
+  const pendingForThisRecording = useAppStore((s) => s.pendingInfographics[id])
 
   const { providers: summaryProviders, models: sumProviderModels } = getAvailableModels(tierInfo, 'summary')
   const { providers: askProviders, models: askProviderModels } = getAvailableModels(tierInfo, 'ask')
@@ -124,6 +129,7 @@ export default function RecordingDetail() {
   // Custom prompt for summary
   const [showCustomPrompt, setShowCustomPrompt] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
+  const [expandedPromptId, setExpandedPromptId] = useState(null)
 
   // AI Ask chat state
   const [askInput, setAskInput] = useState('')
@@ -139,6 +145,9 @@ export default function RecordingDetail() {
   const [showInfographicModal, setShowInfographicModal] = useState(false)
   const [infographics, setInfographics] = useState([])
   const [infographicUrls, setInfographicUrls] = useState({}) // {ig.id: [url, url, ...]}
+  // Lightbox state for clicking an infographic image to view enlarged.
+  // Holds enough info to render the action bar (DL / 場所 / コピー).
+  const [lightbox, setLightbox] = useState(null) // { url, alt, igId, n }
 
   // Whether the "エクスプローラで開く" button should be visible.
   // Docker / remote deploys can't usefully open a local file manager.
@@ -1361,7 +1370,7 @@ export default function RecordingDetail() {
                         }`}
                         title={`${s.llm_provider}/${s.llm_model} — ${timeLabel}`}
                       >
-                        {s.template_name || s.llm_model} ({timeLabel})
+                        {s.custom_prompt ? 'カスタムプロンプト' : (s.template_name || s.llm_model)} ({timeLabel})
                       </button>
                     )
                   })}
@@ -1373,6 +1382,18 @@ export default function RecordingDetail() {
                     <div className="flex items-center justify-between mb-3 text-xs text-gray-400">
                       <span>{summaries[activeSummaryTab].llm_provider} / {summaries[activeSummaryTab].llm_model}</span>
                       <div className="flex gap-2">
+                        {summaries[activeSummaryTab].custom_prompt && (
+                          <button
+                            onClick={() => {
+                              const currentId = summaries[activeSummaryTab].id
+                              setExpandedPromptId(expandedPromptId === currentId ? null : currentId)
+                            }}
+                            className="hover:text-white"
+                            title="この要約で使ったカスタムプロンプトを表示"
+                          >
+                            プロンプト
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(summaries[activeSummaryTab].content)
@@ -1401,6 +1422,14 @@ export default function RecordingDetail() {
                         </button>
                       </div>
                     </div>
+                    {summaries[activeSummaryTab].custom_prompt && expandedPromptId === summaries[activeSummaryTab].id && (
+                      <div className="mb-3 rounded-lg border border-theme-light bg-input/60 p-3">
+                        <div className="text-xs text-gray-400 mb-2">使用したカスタムプロンプト</div>
+                        <pre className="whitespace-pre-wrap text-xs text-gray-200 font-mono leading-relaxed">
+                          {summaries[activeSummaryTab].custom_prompt}
+                        </pre>
+                      </div>
+                    )}
                     <div className="md-content text-sm">
                       <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>{summaries[activeSummaryTab].content}</Markdown>
                     </div>
@@ -1419,19 +1448,12 @@ export default function RecordingDetail() {
         {detailTab === 'infographic' && <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-sm font-semibold text-white">🎨 インフォグラフィック画像 <span className="text-[10px] text-gray-500 font-normal">v0.15.4</span></h2>
+              <h2 className="text-sm font-semibold text-white">🎨 インフォグラフィック画像 <span className="text-[10px] text-gray-500 font-normal">v0.17.1 / gpt-image-2</span></h2>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                要約や文字起こしから、SNSで使えるビジュアルを生成します（OpenAI Image）。
+                要約や文字起こしから、SNSで使えるビジュアルを生成します（OpenAI gpt-image-2 — 日本語テキスト描画対応）。
               </p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => reloadInfographics()}
-                className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1.5 rounded transition-colors"
-                title="サーバーから一覧を再取得"
-              >
-                🔄 再取得
-              </button>
               <button
                 onClick={() => setShowInfographicModal(true)}
                 disabled={!transcription}
@@ -1443,7 +1465,28 @@ export default function RecordingDetail() {
             </div>
           </div>
 
-          {infographics.length === 0 ? (
+          {/* Pending generation placeholder — shows while image is cooking */}
+          {pendingForThisRecording?.count > 0 && (
+            <div className="mb-3 bg-purple-900/20 border border-purple-700/40 rounded-lg p-4 flex items-center gap-3 animate-pulse">
+              <div className="w-10 h-10 rounded-full bg-purple-700/40 flex items-center justify-center text-xl">🎨</div>
+              <div className="flex-1">
+                <div className="text-sm text-purple-200 font-semibold">
+                  画像を生成中...{pendingForThisRecording.count > 1 ? `（${pendingForThisRecording.count}件並行）` : ''}
+                </div>
+                <div className="text-[11px] text-purple-300/70 mt-0.5">
+                  gpt-image-2 は通常 30〜60秒ほどかかります。完了するとここに表示されます。
+                </div>
+              </div>
+              <div className="text-[10px] text-purple-300/50">
+                {(() => {
+                  const elapsed = Math.floor((Date.now() - (pendingForThisRecording.startedAt || Date.now())) / 1000)
+                  return `${elapsed}秒経過`
+                })()}
+              </div>
+            </div>
+          )}
+
+          {infographics.length === 0 && !pendingForThisRecording?.count ? (
             <div className="bg-card border border-theme rounded-lg p-8 text-center">
               <p className="text-gray-400 text-sm">まだ画像がありません</p>
               <p className="text-gray-500 text-xs mt-2">
@@ -1486,26 +1529,23 @@ export default function RecordingDetail() {
                   </div>
                   {storedPaths.length === 0 && (
                     <div className="bg-red-900/20 border border-red-700/40 rounded p-2 text-[11px] text-red-300">
-                      画像ファイルパスが空です。生成APIから画像が返らなかった可能性があります。
-                      サーバーログ（電子版なら %APPDATA%\VoiceScope\logs\）を確認してください。
+                      画像ファイルが見つかりません。サーバログを確認: <code className="text-red-100">%APPDATA%\VoiceScope\logs\</code>
                     </div>
                   )}
                   <div className="flex gap-3 flex-wrap">
                     {urls.map((url, i) => (
                       <div key={i} className="space-y-1">
-                        <a
-                          href={url}
-                          download={`infographic_${ig.id}_${i + 1}.png`}
-                          title="クリックでダウンロード"
-                          className="block"
+                        <button
+                          type="button"
+                          onClick={() => setLightbox({ url, alt: `infographic-${ig.id}-${i + 1}`, igId: ig.id, n: i + 1 })}
+                          title="クリックで拡大表示"
+                          className="block p-0 border-0 bg-transparent cursor-zoom-in"
                         >
                           <img
                             src={url}
                             alt={`infographic-${ig.id}-${i + 1}`}
-                            className="max-h-96 rounded border border-theme-light hover:border-blue-500 transition-colors cursor-pointer"
+                            className="max-h-96 rounded border border-theme-light hover:border-blue-500 transition-colors"
                             onError={(e) => {
-                              // Fallback: show a visible "broken image" placeholder so the user
-                              // knows the load failed (instead of an invisible empty box).
                               e.currentTarget.style.display = 'none'
                               e.currentTarget.parentElement.parentElement.insertAdjacentHTML(
                                 'beforeend',
@@ -1513,7 +1553,7 @@ export default function RecordingDetail() {
                               )
                             }}
                           />
-                        </a>
+                        </button>
                         <div className="flex gap-1 text-[10px]">
                           <a
                             href={url}
@@ -1847,6 +1887,53 @@ export default function RecordingDetail() {
           recordingId={id}
           onClose={() => setShowInfographicModal(false)}
           onGenerated={() => reloadInfographics()}
+        />
+      )}
+
+      {/* Image lightbox — click an infographic in the gallery to enlarge */}
+      {lightbox && (
+        <ImageLightbox
+          url={lightbox.url}
+          alt={lightbox.alt}
+          onClose={() => setLightbox(null)}
+          actions={[
+            {
+              label: '↓ ダウンロード',
+              variant: 'primary',
+              onClick: () => {
+                // Trigger a download by creating a temporary anchor.
+                const a = document.createElement('a')
+                a.href = lightbox.url
+                a.download = `infographic_${lightbox.igId}_${lightbox.n}.png`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+              },
+            },
+            ...(canReveal ? [{
+              label: '📁 ファイルの場所',
+              onClick: async () => {
+                try {
+                  await revealInfographic(lightbox.igId, lightbox.n)
+                  addToast('エクスプローラを開きました', 'success')
+                } catch (err) {
+                  addToast(err.message, 'error')
+                }
+              },
+            }] : []),
+            {
+              label: '📋 コピー',
+              onClick: async () => {
+                try {
+                  const blob = await (await fetch(lightbox.url)).blob()
+                  await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
+                  addToast('画像をクリップボードにコピーしました', 'success')
+                } catch (err) {
+                  addToast('コピーに失敗しました', 'error')
+                }
+              },
+            },
+          ]}
         />
       )}
 

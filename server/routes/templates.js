@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { execute, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
+import { execute, executeReturningId, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
 import { summarize } from '../services/summary/index.js';
 
 const router = Router();
@@ -49,13 +49,12 @@ router.post('/', (req, res) => {
       execute('UPDATE templates SET is_default = 0');
     }
 
-    execute(
+    // executeReturningId — sql.js's save() resets last_insert_rowid().
+    const id = executeReturningId(
       `INSERT INTO templates (name, description, system_prompt, output_format, is_default, preferred_llm_provider, preferred_llm_model)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [name, description || null, system_prompt, output_format || 'markdown', is_default ? 1 : 0, preferred_llm_provider || null, preferred_llm_model || null]
     );
-
-    const id = lastInsertRowId();
     const template = queryOne('SELECT * FROM templates WHERE id = ?', [id]);
     res.status(201).json(template);
   } catch (err) {

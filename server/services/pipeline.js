@@ -1,5 +1,5 @@
 import path from 'path';
-import { execute, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
+import { execute, executeReturningId, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
 import { transcribe } from './transcription/index.js';
 import { summarize } from './summary/index.js';
 import { suggestTags } from './tagging.js';
@@ -72,11 +72,15 @@ export async function runPipeline(recordingId, options = {}) {
       // (parsing LLM only runs for unknown formats — conservatively mark as NOT local if LLM was used)
       transcriptionLocal = !options.parsedByLLM;
     } else {
-      // Do transcription
+      // Do transcription (engine/language/diarize fall back to settings when unset)
       execute('UPDATE recordings SET status = ? WHERE id = ?', ['transcribing', recordingId]);
       notify(recordingId, 'transcribing');
 
-      const transcriptionResult = await transcribe(audioPath);
+      const transcriptionResult = await transcribe(audioPath, {
+        engine: options.engine,
+        language: options.language,
+        diarize: options.diarize,
+      });
 
       // Track whether the transcription engine was local
       transcriptionLocal = ['whisper-cpp', 'faster-whisper'].includes(transcriptionResult.engine);
@@ -230,9 +234,9 @@ export async function runPipeline(recordingId, options = {}) {
       summaryLocal = ['ollama', 'custom'].includes(summaryResult.provider);
 
       execute(
-        `INSERT INTO summaries (recording_id, template_id, llm_provider, llm_model, content)
-         VALUES (?, ?, ?, ?, ?)`,
-        [recordingId, summaryResult.templateId, summaryResult.provider, summaryResult.model, summaryResult.content]
+        `INSERT INTO summaries (recording_id, template_id, llm_provider, llm_model, custom_prompt, content)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [recordingId, summaryResult.templateId, summaryResult.provider, summaryResult.model, summaryResult.customPrompt, summaryResult.content]
       );
 
       // Step 4: Auto-tag
@@ -245,8 +249,8 @@ export async function runPipeline(recordingId, options = {}) {
 
           let tag = queryOne('SELECT * FROM tags WHERE name = ?', [trimmed]);
           if (!tag) {
-            execute('INSERT INTO tags (name) VALUES (?)', [trimmed]);
-            const tagId = lastInsertRowId();
+            // executeReturningId — sql.js's save() resets last_insert_rowid().
+            const tagId = executeReturningId('INSERT INTO tags (name) VALUES (?)', [trimmed]);
             tag = { id: tagId };
           }
 

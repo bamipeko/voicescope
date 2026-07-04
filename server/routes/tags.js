@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { execute, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
+import { execute, executeReturningId, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
 import { autoAssignFolders } from './folders.js';
 
 const router = Router();
@@ -30,8 +30,8 @@ router.post('/recordings/:recordingId/tags', (req, res) => {
     // Find or create tag
     let tag = queryOne('SELECT * FROM tags WHERE name = ?', [name]);
     if (!tag) {
-      execute('INSERT INTO tags (name, color) VALUES (?, ?)', [name, color || '#6B7280']);
-      const id = lastInsertRowId();
+      // executeReturningId — sql.js's save() resets last_insert_rowid().
+      const id = executeReturningId('INSERT INTO tags (name, color) VALUES (?, ?)', [name, color || '#6B7280']);
       tag = queryOne('SELECT * FROM tags WHERE id = ?', [id]);
     }
 

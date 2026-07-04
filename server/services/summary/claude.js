@@ -14,7 +14,7 @@ export async function summarizeWithClaude(text, systemPrompt, options = {}) {
     client = new Anthropic({ apiKey });
   }
 
-  const model = options.model || 'claude-sonnet-4-6';
+  const model = options.model || 'claude-haiku-4-5-20251001';
 
   const response = await client.messages.create({
     model,

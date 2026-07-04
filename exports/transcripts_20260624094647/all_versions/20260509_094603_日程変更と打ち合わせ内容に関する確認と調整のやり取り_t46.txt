@@ -1,0 +1,302 @@
+タイトル: 日程変更と打ち合わせ内容に関する確認と調整のやり取り
+録音ID: rec_20260509004603
+文字起こしID: 46
+録音日時: 2026-05-09T00:46:03.483Z
+文字起こし日時: 2026-05-09 00:46:35
+エンジン: grok-stt
+言語: en
+使用テキスト: original
+元ファイル: rec_20260509004603_768c5be9aed7188f.webm
+
+[00:01] speaker_1: I'm just
+[00:07] speaker_0: fine
+[00:11] speaker_0: I'm on Discord. is this okay?
+[00:16] speaker_0: This? Yes. Excuse me, I need to-
+[00:32] speaker_0: Oh, oh
+[00:44] speaker_0: Uchino kame no koto iroritodo nakasusumete
+[00:48] speaker_0: ite, ano, hai, koto, ano kame no tomo irorihanashi o shitete, eetto watashi no hou ga ano
+[00:58] speaker_0: ima no What do you mean? I mean, once again, you said you're not going to change the date, right? actually, you know, well, there's the date, but there's also the content.
+[01:18] speaker_0: today, today, so, you know, the schedule and, the, you know, the content. First, Mr. Yamamoto, you know, you know, the Onigashiku, you know, you were trying to do something like that.
+[01:35] speaker_0: I think
+[01:36] speaker_2: it's
+[01:41] speaker_0: interesting.
+[01:49] speaker_0: あれですかね、実際に人を呼ぶためのなんか仕組みだとか、実際のそのなんていうんですかね、その I think it was good to talk about the content, including the examples, that we would like
+[02:09] speaker_0: to review. I'm sorry, I'm a little stiff. I'm sorry, I'm sorry.
+[02:20] speaker_0: a little bit, so, ehh, work,
+[02:31] speaker_0: I think
+[02:32] speaker_3: it would be nice if you could go there casually. I see. I see. please do it again. I see. I
+[02:39] speaker_0: see. I'm
+[02:42] speaker_3: doing it. あのーまあ一応ギャブソンとヒャンベルさんでどこまで話してたかはぼくも全部把握してないですけどあのーまだ特別すごい内容もしっかり決まってるわけでもなければマネタイズ方法も決まってるわけでもなく
+[02:59] speaker_3: こっちから日程この日がゲーボックスは空いてますよーって言った結果キャンベルさん的には空いてますよーがまあちょっと難しくなったからリセットしようっていうところでまだなんかすごい中身をしっかり詰めてたかっていったらそういうわけでも全くないのでむしろはいはいあのなんかすごい一斉に直すというよりは
+[03:16] speaker_3: ここからイベント一緒に考えていきましょうっていう段階かなとあの hi. Thank you for your time.
+[03:24] speaker_3: Hi. so I don't know anything about that. if you have any ideas, I would be happy to hear them.
+[03:35] speaker_0: はい、あ、わかりました、ありがとうございます。今日のその辺って
+[03:42] speaker_2: え、若いさんどうしましょうね
+[03:45] speaker_1: まあ、鬼の、鬼の合宿はちょっとノリで言ったところがそうそうそううん
+[03:51] speaker_1: まあ、まず日程先に押さえとかないですか I think you can decide first. hi. 地方の方が参加しようと思った時に
+[04:12] speaker_1: 今のAI系のイベントって大体一ヶ月前とか数週前とかで
+[04:19] speaker_1: It's just that transportation costs are insanely high, right? And if it's roughly two months ago, it's a little easier to go, or there are time sales that they do.
+[05:06] speaker_1: Osayarirattadu.
+[05:11] speaker_1: Anu-
+[05:11] speaker_2: Khyomar, sam,
+[05:12] speaker_0: ehto, kahejorhte winc aichi toh kosa tsunomawatari tey hawashi tata.
+[05:16] speaker_2: Sodsese, anu onin no geiboku gashuku no tsunori de kangaete te, de winc aichi no ehto sanjouni ga haiyere ru heya de ma yonjouni ka gojouni no heya o sagashite taki ni kouhoho geiboku san ni
+[05:34] speaker_2: 18をいただいたんですけどちょっと時間が経ってしまってたので一旦この日がダメになりました
+[05:42] speaker_0: はいはいはい That's the introduction of the meeting room, right? A medium and a small room, right?
+[05:50] speaker_2: The content depends a little bit. I came out with the intention of meeting. But if the content changes
+[06:03] speaker_0: なるほどなるほどはい逆にあれか現状前多分予定出したかもしれないけどあれですよね今また変わってますよね
+[06:16] speaker_0: で七月七月えっと基本は漁業さん土日とかですよねおそらく
+[06:30] speaker_1: So, yeah.
+[06:33] speaker_0: Sunday is a good day. So, yeah. Yeah, yeah. In July, I think. I, sorry, let's check the weather in July. Actually, Mr. Katabami's, July schedule, the Sunday
+[06:53] speaker_0: schedule, how is it?
+[06:55] speaker_1: 今のところ僕は全然あの動かせるというか、そういうなんか出て行く予定はないので、はいはいはい、合わせれます全然
+[07:07] speaker_0: That's right. That's right. Mr. Kato, how is it? It's all good. It's all I'm
+[07:24] speaker_0: just looking up, I'm looking up right now, so I'm gonna talk to you about it. Where
+[07:34] speaker_1: was the venue?
+[07:36] speaker_0: Wink IT
+[07:39] speaker_1: I think it's, it's like a
+[07:43] speaker_2: meeting list, isn't it? So, so, so. I think
+[07:57] speaker_2: it's a document, right? So, I,
+[08:04] speaker_2: 31日
+[08:13] speaker_1: Day 1だけのイベントと考えて、はい、めっちゃ会議室みたいな感じなので
+[08:26] speaker_1: なんなんでしょうねなんかうん僕が前でひたすらしゃべる体がいいのかワークショップみたいにするのがいいのか
+[08:39] speaker_2: あの普通にいちファンとしていつもその画面の向こうで見てる人がリアルに目の前にいて実際に生で教えてもらえるその授業みたいな感じの体験をして同じものを何か作り上げて入って行って教えてもらえるとめちゃう嬉しいじゃないですかそんな感じの楽しくないです
+[09:13] speaker_0: あれ
+[09:16] speaker_0: そうですね我れ我々からすると楽しいですけどそうですね
+[09:23] speaker_0: どうなんでしょうねげげぼさん
+[09:26] speaker_1: あや全然そういのも僕はありだと思ってますただいやごめんなさい全然どういうのがいいかなと思って今思考を周らせているところで
+[09:36] speaker_1: はいはいはいはいうん二月はうん
+[10:06] speaker_1: I'll
+[10:11] speaker_2: definitely go
+[10:22] speaker_0: So, we think so, but, my
+[10:26] speaker_1: confidence is
+[10:27] speaker_2: lacking
+[10:34] speaker_2: I want to see. I want to see.
+[10:40] speaker_2: I want to see
+[10:41] speaker_1: a normal movie. I want to see a movie. that too. But that's because you have an image of the night. I want to see the night.
+[10:53] speaker_1: I'm
+[10:54] speaker_2: 30
+[10:54] speaker_1: people.
+[10:57] speaker_2: I was talking to you. Image 30 people, that's students.
+[11:07] speaker_1: 30回ですよね。
+[11:21] speaker_2: Follow me. I want
+[11:32] speaker_1: to go alone.
+[11:36] speaker_1: Well, how
+[11:37] speaker_2: about
+[11:45] speaker_3: that? I think so. If you just talk to the customers, 30 people is a little less than the target. But if you teach them one by one, the number will suddenly increase
+[12:04] speaker_3: 三十だと多すぎるようになるんでどっちをメインに持っていくかげおくさんの収録みたいな感じでの教えてもらうのをメインに持ってってみんなでやってみましょうって、でまああんまりサポートするというよりはみんなでやってみようって言って隣の人同士教え合ってねみたいな会だったら三十四十
+[12:27] speaker_3: I think it's okay to call a salon for a little more detailed person I just think it's gonna be hard because the
+[12:47] speaker_3: cost of the farm is so high. I think it's gonna be hard. I honestly didn't prepare anything before I came to the venue and I said, "It's gonna be fun." I'm sorry, but so far, all I've done
+[12:59] speaker_1: is asked Kato-san to take care of everything. So, I understand. I understand. I just left all the flow to her. I'll take care of YouTube, I'll take care of the photos, I'll
+[13:11] speaker_2: take care of- みたいな感じで、みんなにサンクラスをかけてもらって、あのおにおにおいの共感がいて、みんな下僕で、あの岸に
+[13:28] speaker_2: なんか半ゾンでやるみたいなそういうの面白くないですか？またハードル高いか
+[13:35] speaker_1: そうねか顔を多分一切出したくないっていう人もいるのかなって思う
+[13:40] speaker_2: うんうん
+[13:42] speaker_2: あ後ろ姿で後ろ姿
+[13:44] speaker_1: ああ
+[13:46] speaker_1: ざっくりですけど、その感じで言うと、例えば公開収録みたいな、あの結構ポッドキャストで対談とか出してるんですけど
+[14:01] speaker_1: それのあの、何ですか、笑っていいと思うな、の、テレフォンショッキングでしたっけ？うんうんうんああいう感じで
+[14:12] speaker_1: Listenerが前にいてちょっと後ろ姿を映ったりぐらいとか
+[14:19] speaker_1: ああなるほどねはいはい
+[14:23] speaker_3: Da-誰をもう一人呼ぶかっていうところもありますけどね。うん。確かに、電話ショッキングいいかもですね、洋服さん。これから
+[14:40] speaker_3: なんかイベントの度に現地のインフルエンサーさんちょっと声かけてユーチューブ動画を一本撮るっていうのをルーティンにしてけば Sorry, my YouTube
+[14:51] speaker_1: material is getting too much. Maybe even if you record it publicly, one hour and a little bit will give you enough time. For the extra one hour, sorry, two hours, I think, plus two hours is totally fine. With the guests, you can
+[15:11] speaker_1: mix and match and make something together.
+[15:26] speaker_0: I
+[15:29] speaker_1: understand. I understand
+[15:50] speaker_1: The first half is a little bit of a slow recording to warm you up and relax you. 後半戦でちょっとワークショップみたいな楽しみ楽しみ
+[16:12] speaker_2: そういう場合で僕さんはやっぱ大変ですか？おしゃべりは多分上手だからいいじゃないですか？その後のワークショップって準備大変ですか？
+[16:27] speaker_1: It's always YouTube and you tell me
+[16:33] speaker_2: all kinds of stories, isn't it? But it's hard to do it together
+[16:50] speaker_1: How
+[16:52] speaker_3: do you say it?
+[16:57] speaker_3: 例えばゲームオブサンダーライトマイヒックスフィールドとあのコラボしてソニーでイベントやったやつとかはその場でこうVFXをみんなで作ってみようみたいな
+[17:09] speaker_3: のが一つテーマとしてあって、ヒッグスフィールド触ったことない人も触ってみようねっていうのがこうPRであり、テーマだったので、うんうん、分かりやすかったですけど、単に医務室さんと何かを作ろうみたいになってくると What do you make? I feel like it's hard. So people are
+[17:29] speaker_3: interested in things that they don't touch, and this is an opportunity to touch
+[17:35] speaker_3: them.
+[17:38] speaker_1: どんな方がターゲットで来るんだろうっていうところでそうですねあとまあそのね
+[17:45] speaker_1: そのカメラ、ソニーの時はもうなんか本当
+[17:49] speaker_1: フロスキュをすごく広げて、AIわかんない人の大歓迎みたいな、その場でカメラ撮って、うん、フィックスフィールドで、VFXみたいなの楽しんでみようみたいなところだったので、なんか技術的なところはほんと不要で、みんなの力量がバラバラでも割と簡単に成り立つみたいなところがあったん
+[18:23] speaker_3: どうなんでしょうね、そこらへんね、あの、なんかそのざっくりと下僕さんのファンの人を呼ぶパターンと、下僕さんのファンじゃなくて、あの、まあ、AIこれからですよってそう呼ぶっていう The time, Sony's case, was completely for the fans outside the camera, for the people who are interested in cameras, it was made for them, but in fact, the
+[18:43] speaker_3: fans were not that many
+[18:46] speaker_3: 三割ぐらい三割ぐらいなるこ今回その名古屋でやるって言った時に
+[18:53] speaker_3: そこがどうなるのかファンだと楽しいですよねって言ってあの
+[18:58] speaker_3: 設計するとギャル系ファンの人はもうそんなこと知ってるよみたいなシーダンスなんか特に使ってるよみたいなこともあったりするからちょっとワーク自体がコードになるというか
+[19:11] speaker_3: I think if you're
+[19:12] speaker_1: gonna get into the podcast industry, you're gonna have to rely on listeners. So, yeah.
+[19:17] speaker_3: But even if you don't have a podcast, you have, you have それはそれで面白いんじゃないですか。相手のインフルエンサーさんのデカさ次第ですけど、ファンが増えるというか。うんうん。うん。恋愛最前線トークみたいなんで、あのうん。
+[19:39] speaker_3: Workshop, workshop,
+[19:43] speaker_3: Workshop, あのAIとかあったじゃないですか
+[19:51] speaker_1: ああはいはいはい
+[19:52] speaker_3: ああいうので単に遊び半分であの色々やってみようってで一人一人が目の前じゃ人と話しながら画像生成してみようとか
+[20:03] speaker_3: うんうんなんか
+[20:05] speaker_3: そっち系ならすぐ遊べそうですけどね
+[20:10] speaker_3: うんまあみんなるかわかんないですよただ楽しいっていう
+[20:18] speaker_1: うん
+[20:22] speaker_3: なんかどっちにしてもなんかのツールをちゃんと決めた上であのこのツールの何かを教えますよってしとかないとちょっと広すぎると大変かなっていう気がしますね
+[20:37] speaker_3: Supportの面でもね。なるほど。事業さ、やっぱ四十人ぐらいにしてどっかから
+[20:49] speaker_3: 共産もらって共産お金というよりはクレジットもらって配るみたいな形ができると楽ですけどねうんクレームとか来ないかな
+[21:03] speaker_3: クリングとくれたら嬉しいですね。エックスフィルドはまた改めて行っているってのもありじゃないですか。僕はお勧めはしないけど、あのエックスは最近いいや
+[21:17] speaker_0: Gyokurin, Gyokurin was CPP, right?
+[21:21] speaker_1: yes, yes. Yes, yes, yes. You- How much-
+[21:24] speaker_0: You- How much do you get paid?
+[21:30] speaker_1: it's fine. It's fine, but, well, probably if you keep it up,
+[21:43] speaker_1: The blue one, I
+[21:44] speaker_0: think, is
+[21:46] speaker_1: a little more flexible
+[21:54] speaker_3: I think it's gonna get more and more popular.
+[21:58] speaker_2: really.
+[22:02] speaker_1: Like
+[22:05] speaker_3: 3D printer.
+[22:11] speaker_1: I think it's fun.
+[22:15] speaker_2: It's
+[22:18] speaker_0: fun, isn't
+[22:20] speaker_3: it?
+[22:23] speaker_3: Nice, so nice. I can't get a rental
+[22:28] speaker_1: car. Rental is expensive, isn't it?
+[22:36] speaker_1: さすがにスリーディーデータは厳しいかなぁ
+[22:40] speaker_3: ただサンプルをその場で下僕さんが作ってみんなのスリーディーデータもあの申し込みしたら後日届くよみたいなのは、あのう、単純にマネタイズポイントとしても、あのう、後日3Dプリンターで作って送るだけなら超簡単なんで、楽は楽ですよね
+[23:00] speaker_1: and Katabi-san and Yoshio-san also like it. So,
+[23:06] speaker_3: so, so, like, in the,
+[23:12] speaker_3: スリーディープリンターでたぶん五六台は用意できるのでそれだったら三十人ぐらいだったら二三日あれば作り終わるかなデータの処理は大変ですけど
+[23:25] speaker_3: うんうんうんうん例えばメッシーさんとかだったら結構柔軟にあのピーアールいっぱいやってるイメージあるんで
+[23:48] speaker_1: Messi.
+[23:51] speaker_0: Oh,
+[24:00] speaker_0: yeah.
+[24:09] speaker_1: I
+[24:12] speaker_1: think it's okay.
+[24:28] speaker_1: I think
+[24:43] speaker_3: it's interesting You can tell the boss. If you make a little noise, it sounds like a strike.
+[24:57] speaker_1: The boss
+[24:58] speaker_3: called? The boss called and said, "You can stand up. "
+[25:05] speaker_3: その上でなんかそういうふうにこういう造形は作りづらいから作るときはこういう意識しましょうねっていうのをやれば何でしょうプリントプリンターで印刷して失敗した人しか持ってない機嫌になるんで相当美味しいっすよね
+[25:26] speaker_1: うんうん。それで、もう僕ちょいちょいお仕事してるところあるので、うんうん。そこに企画持ち込めば、まあ、一対二対とか
+[25:53] speaker_0: なるほどですね。あの一旦会議室の方は、えっと七月の土日だけでいうと
+[26:03] speaker_0: えっとだいたい一番午後の一番いいところは埋まってるんですけど絶対に午後がいいですあの十三時から十七時要は午前と午後と夜間があるんですけど押さえるべきは午後ですよね
+[26:22] speaker_0: for sure,
+[26:24] speaker_3: that's right. That's right. I think from the local area, I think, I think there
+[26:38] speaker_0: will be rental space.
+[26:44] speaker_0: H
+[26:50] speaker_0: other than that, the rest of the
+[26:58] speaker_3: month
+[27:05] speaker_0: 1
+[27:06] speaker_3: 2 8.
+[27:08] speaker_0: Atai.
+[27:08] speaker_1: ok.
+[27:09] speaker_0: Hai hai hai.
+[27:10] speaker_1: Aite nae.
+[27:12] speaker_0: sou desu nee. Sasaai kibishi desu ka.
+[27:20] speaker_0: 39.5.
+[27:31] speaker_2: 別の、あの、私ちょっと別で、あの、オフ会でやってる時に、三十人の募集した時に、あの、結構スタッフも入るから、結構狭いんです。で、なんかパソコンって、えっと account-like things, I think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway. I
+[27:51] speaker_2: think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway. I think I want a little more leeway
+[28:04] speaker_3: スタッフさんって意味ですか
+[28:09] speaker_2: パーカー
+[28:14] speaker_3: すごい強気に言いますけど、決まった人数を呼ぶので百って言われたら百呼ぶように頑張るっていう世界ですね。本当ですか？あーじゃあもうちょっと上を
+[28:26] speaker_3: 三十ってやったら三十で、で、まあ一応ちょっと名古屋なんで読めないですけど、ゲストさんが声かけたら大体あの、ちょうどで十五ぐらいは固いので、二十人とか二十五人だったらちょっと呼びかけたらもう、あの埋まっちゃうん、埋まっちゃうんですよ
+[28:42] speaker_3: ただ五十とかになってくると、ほんと前からちゃんと告知して、一緒に来るインフルエンサーさんにも告知してもらって、結構繰り返しやっていくぐらいの感覚 100 was pretty tough, wasn't it? The
+[28:57] speaker_3: day before.
+[29:00] speaker_2: I took 50 of the 50 rooms. 50 rooms. So I took the rectangle, the tall room, and I did the course there. But in front, I had a projector and everyone had a computer to do it, but the people behind couldn't see anything.
+[29:19] speaker_2: I think 40 is good.
+[29:38] speaker_1: 25の土曜日 1105 42名って書いてるやつが前日どこでも空いてるんです
+[29:49] speaker_1: えっと、は、七月ですか、八月ですか？これ七月二十五日、八月の二十五日全部埋まってませんかね？
+[30:02] speaker_0: 今午前や午後空いてますけど私のセキュリティーホームいちいちまるごうあるいちいちまるごう
+[30:11] speaker_2: うんいちいちまるごうよんじゅうに
+[30:13] speaker_0: あっしょかいぎじゃなくてちゅうかいぎとかの方
+[30:23] speaker_0: totally sorry, I don't
+[30:28] speaker_1: understand
+[30:33] speaker_3: 908-4-4-2
+[30:46] speaker_1: さてまあ日程はいいんじゃないかなとはうん
+[30:50] speaker_0: ふらがちゃよ
+[30:55] speaker_3: ふらがちゃようん
+[31:01] speaker_1: 18か18か 18か 18かキャンベルさん、この会場ってはいそのスクール形式
+[31:14] speaker_1: じゃなくて、よくワークショップみたいな机向き合わせて四名一班みたいなのがあるじゃないですか。人数はちょっと今こだわらないんですけど、ああいう形の配置にもできるんですか? this
+[31:31] speaker_2: room is, I don't know what it is, but it's a long couch. to
+[31:39] speaker_0: 3
+[31:43] speaker_2: people sitting
+[31:54] speaker_0: so there's a table that's attached, right? Sh- wait a minute, I get it. Thirteen people's booths are all connected
+[32:04] speaker_1: together
+[32:08] speaker_0: Wing, both are, 11. Sorry, 11 what was it? 1105. 1105 is stuck type, it's a meeting
+[32:22] speaker_1: room.
+[32:25] speaker_0: 九〇八〇とかはどんなですか？これもくっついてるの？九〇八もくっついてます。小会議は基本、あー分かんないですけど、このホームページ見ると、えーと小会議室っていうのは机が一列に並んでいて、中会議室っていうのは机が二つに分かれていて、キャメルさんやるやつとかってきゅー中会議室だよね
+[32:44] speaker_2: I always order around 40. I want
+[32:49] speaker_0: something
+[32:50] speaker_2: that can be easily moved.
+[32:53] speaker_0: I see. I see. I see. So, this looks like this.
+[32:57] speaker_2: The photo is like this, but- So, when you take the photo, everyone moves it with a clatter. That's right,
+[33:05] speaker_0: it moves, right? I think I can move it. Well, probably it depends on the meeting room, but I'm sure, we, when we were there, we generally-
+[33:14] speaker_0: 三つセットの机の会議室ばかりだから、でもこのホームページ見ると一列に並んでるやつもあって、小会議室それが貼っ、あの写真貼ってあるから、そういう会議室もあると思うんだよね、これ
+[33:28] speaker_1: after, the schedule is, two days, either is fine for me. July
+[33:36] speaker_2: 28th, Thursday, or July 25th, Friday. 25日の土曜日で動かせるやつで
+[33:51] speaker_0: はいはいはい
+[33:53] speaker_2: 動かせるのが優先だったかって
+[33:59] speaker_0: I
+[33:59] speaker_2: think it's a long table, three times the length of a long table, and we'll sit around it in groups of six.
+[34:07] speaker_1: But in a workshop, it's more like this. I mean, school assemblies, like
+[34:17] speaker_1: at Sony, were fun, but...
+[34:21] speaker_1: なんか基本参加されてる方は受け身な感じがしで、や、もちろんやり方にもよるんでしょうけど、いや、確かにそれはわかる。せっかくね、三十四人も人が集まるんだったら
+[34:36] speaker_1: 交流の意味も込めて、僕が行ったときはその方とワイワイできて、その人もなんか色々できるだろうけど、いないときはなんか一人で黙々やるみたいな、そういう真面目なスタイルももちろん
+[34:50] speaker_1: いいんだろうけど、なんか今回の全体の今の段階のアイデア聞いてると、もっとワイワイし、する感じなのかなと思うので、うんうん。ワークスペース形式が、知らない人の交流にもなるし、いいのかなと思います。
+[35:09] speaker_3: 楽しみそのあと交流会というか飲み会もやるんならそこで仲良くなっておいてほしいですからねうんうんうんうん
+[35:21] speaker_3: じゃあちょっと実際にその会場の十八か二十五どっちかはどっちかっていうところで借りられる部屋の
+[35:30] speaker_3: 机の種類を聞いていただいたりして、はい、でワークスペース系にしたいのでこう机合わせてやりたいんですけどっていうのを、まあ聞いた結果の席数でお客さんを決めるっていう感じですかね。はい、そうですね。
+[35:47] speaker_3: お客さんの人数が決まって、その利用料が分かったら、まあチケットとかがいくらになるかとかが見えてくるかなっていうような気がします。うんうんうんうん。もうこれ動かせるのが決まったらもう
+[36:02] speaker_1: I think it's good. If it gets stuck, it
+[36:04] speaker_3: becomes
+[36:07] speaker_1: a release again. One more,
+[36:10] speaker_2: please. The
+[36:13] speaker_2: wink 1 has Y in it. あの、みんな移転に使うと、そのワイファイが弱いので、いつも自分たちでワイファイを準備してってるんです。
+[36:28] speaker_2: あの、その町、町がカオスになるのが嫌なので、そのぐるぐるぐるぐるって、で、あの、もう色、かい、階層を重ねてどんどんワイファイを強、強にしてって、その準備として The budget 8,000 yen or 10,000 yen
+[36:49] speaker_2: plus is it okay? It's good. It's good.
+[36:51] speaker_1: That's the concern. It's
+[36:53] speaker_2: good, as you said, with
+[36:59] speaker_1: the network cable
+[37:03] speaker_1: So, I think that's the workshop that will be the
+[37:06] speaker_2: most difficult. So, I've experienced a lot of
+[37:13] speaker_2: chaos, and I've been increasing one by one to become chaos, and I think it's about this much that it's stable.
+[37:23] speaker_2: So, roughly
+[37:24] speaker_1: 10,000 yen
+[37:34] speaker_2: このさっき3dのお話もされてたから歌いこつよつよにしたいなって思いました
+[37:47] speaker_1: さっき一万五千とかここに午後から一万五千、一万三千円ぐらいで書いてたんですけどこれ別となんかかかるんですか例えばプロジェクト扱ったらとか
+[38:01] speaker_2: normally, that mic, one, how much, etcetera, is included. So, you can just use it as a temporary mic.
+[38:12] speaker_2: そんなに高くないですウィンクアイチは安いのでじゃあ方向性は
+[38:27] speaker_1: こんな感じでよさそうですかね十八日か二十五日のまあこちらどっちかを選んで予約してもらってうんうん 30,
+[38:45] speaker_1: 40ぐらいで、ちょっとその料金とちょっとそこ僕全然よくわかってないんで、片仮さんの力借りながら予算、まあ8,000円の、1万円のWi-Fi代とか含めたところ決めてるところですかね。合わせてまあ僕もあの3DKには
+[39:05] speaker_1: I think we need to plan and make a call. by
+[39:09] speaker_1: the
+[39:09] speaker_0: way, I want to ask you,
+[39:13] speaker_0: 3D, as you said, you talked about the CC budget, I want to ask you, Sochiya no hokokusei de i-ii na to omun desu kedo, chou watashi, watashi ga tatoeba kakawaru toka de areba, donna koto ga dekisou ka mitai na ohanashi o, ma bresto-rebure de iroiro hanashi shimasu to, watashi, banchingu
+[39:33] speaker_0: hokokusei de yuuki de zutto shigoto yatte tari fushite iru node, tatoeba, utto, sakiido, utto,
+[39:49] speaker_0: tele
+[39:49] speaker_0: さん、かたわらさんもいろいろお知り合いはあると思うんです。そ、そんなに私の、うんと、まあ、私クリエイター寄りの人うんは比較的、うんと、まあ、本当に仲いいクリエークリエイターもたくさんいたりはしますし、あの、例えば、うんと、まあ、一番仲いいとこでいうと、あ、青木さんとか、そういううん人とかにはめ、あの、普段から連絡取ってるぐらいな感じだったりしてるから、そういう人も
+[40:19] speaker_0: and so on. And then, of course, I'm also a little bit busy these days, so it's kind of difficult. But, you know, I also have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know, I have, you know,
+[40:39] speaker_0: I have, you know, I have, you know, So you have connections with people like that. So you have connections with people like that. So you have connections with people like that. So you have connections with
+[40:59] speaker_0: people like that. ただまあ、うん、まそう、まちょっと、うん、声かけてみないとわかんないんですけど、まあ私が関わる時だったらそういう方向性もなんか色々と
+[41:16] speaker_1: できるかなと思ったりもしたなとおもったので、一応情報程度でという形ですけど、分かります。まだそこは多分ここから詰めていったらいいと思うので、うんうん。選択肢が色々あっていいですね。まあ結局ね、どうせどうせって言ったらあれですけど、目に見えてるようなこのSNSでの有名なインフルエンサーさんだと、まあお客さん呼びやすい面もありますけど、うん。まあ話すことはだいたい
+[41:44] speaker_1: 発信してるぐらいのところになってくるのかなと思って、まあそういう業界の方との話っていうのも一つ、そのイベントでしか聞けないので面白そうですよね
+[41:58] speaker_0: so, I think,
+[42:07] speaker_0: So it's a lot of places that
+[42:14] speaker_1: are there
+[42:19] speaker_1: I'm looking forward to it. Thank you very much. I'm looking forward to it. I'm looking forward to
+[42:23] speaker_2: it. I'm looking forward to it. I'm looking forward to it. I'm looking
+[42:25] speaker_1: forward to it. I'm looking forward to it. I'm looking forward to it. I'm looking forward to it. I'm looking forward to it. I'm looking forward to it. I'm looking forward to it. I'm looking forward to it. I'm looking forward to it. I'm
+[42:31] speaker_2: looking forward to it. I'm looking forward to it. I'm looking forward
+[42:32] speaker_1: to it. I
+[42:35] speaker_0: そうですよねよく考えたら青木さんとも今東京行っちゃってますけど青木さんもともと名古屋ですからねから赤でたぶん僕は初めてお会いしたんですよねはいはいはい
+[42:55] speaker_1: Airportの面とかって実際
+[42:59] speaker_1: 何ぐらい来てくれるようなあれだったんですか
+[43:03] speaker_0: あどこですか
+[43:04] speaker_1: Support? support? Gamblers and so on included, variously coming,
+[43:12] speaker_2: so I think that's- I think
+[43:16] speaker_2: 呼ぼうと思ってまして、だいたい五六人で動いてるんです。で、その方たちがあのー、よって言ってくださってたんです。で、いつもの動き方は、まあ私受付と、まあこっちですよみたいな感じでやってて、で、えっと、他の方は、あのー
+[43:38] speaker_2: For example, when logging in was difficult, I went to support, or when I needed WiFi, I called the WiFi company outside. So I got through that kind of support.
+[43:50] speaker_1: I'm so thankful. I'm so happy. For the
+[43:55] speaker_2: content, it's completely useless, probably, because my level is, that level, but the customer support is perfect.
+[44:15] speaker_1: 特に日程だけとにかくどっちかは決まると、まあゲーボクさんとりあえずに終わらせられるので日程を優先で決まるといいなと決まりたいと思いますはい決まりますYouTubeとかで言っていくので内容言わなくても予定は消せることはできますからね
+[44:37] speaker_0: Understood.
+[44:41] speaker_0: Let's hurry up
+[44:45] speaker_1: and do it.
+[44:47] speaker_0: 18th, 25. Thank you
+[44:50] speaker_1: very much. I'm looking forward to it. Thank you very much.
+[45:10] speaker_2: The sound of a camera
+[45:22] speaker_2: shutter
+[45:36] speaker_2: clicking.

@@ -31,16 +31,16 @@ export const TIERS = {
     price: '¥980/月',
     allowedModels: {
       summary: [
-        'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5-nano', 'gpt-5-mini',
-        'gemini-3-flash-preview', 'gemini-3.1-flash-lite-preview',
+        'gpt-5.4-mini', 'gpt-5-nano',
+        'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite',
         'claude-haiku-4-5-20251001',
-        'grok-4-1-fast-non-reasoning',
+        'grok-4.3',
       ],
       ask: [
-        'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5-nano', 'gpt-5-mini',
-        'gemini-3-flash-preview', 'gemini-3.1-flash-lite-preview',
+        'gpt-5.4-mini', 'gpt-5-nano',
+        'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite',
         'claude-haiku-4-5-20251001',
-        'grok-4-1-fast-non-reasoning',
+        'grok-4.3',
       ],
     },
     crossAsk: true,
@@ -54,11 +54,11 @@ export const TIERS = {
   },
   free: {
     label: 'Free+',
-    description: 'テスト用無料プラン（Deepgram + gpt-5.4-mini まで）',
+    description: 'テスト用無料プラン（Deepgram + 最安モデル）',
     price: null,
     allowedModels: {
-      summary: ['gpt-5-nano', 'gpt-5.4-nano', 'gpt-5.4-mini', 'gemini-3.1-flash-lite-preview'],
-      ask: ['gpt-5-nano', 'gpt-5.4-nano', 'gpt-5.4-mini', 'gemini-3.1-flash-lite-preview'],
+      summary: ['gpt-5-nano', 'gemini-2.5-flash-lite'],
+      ask: ['gpt-5-nano', 'gemini-2.5-flash-lite'],
     },
     crossAsk: true,
   },
@@ -73,51 +73,55 @@ export const TIERS = {
 export const ALWAYS_ALLOWED_PROVIDERS = ['ollama', 'custom'];
 
 // Cloudflare Worker URL for managed mode
-export const MANAGED_WORKER_URL = 'https://voicescope-api.tka1478.workers.dev';
+export const MANAGED_WORKER_URL = 'https://voicescope.voicescope.workers.dev';
 
-// Models available in managed mode per tier (excludes Gemini — no proxy support)
+// Models available in managed mode per tier.
 // Keep these in sync with worker/src/middleware/model-guard.ts
 export const MANAGED_ALLOWED_MODELS_BY_TIER = {
   free: {
-    summary: ['gpt-5-nano', 'gpt-5.4-nano', 'gpt-5.4-mini'],
-    ask: ['gpt-5-nano', 'gpt-5.4-nano', 'gpt-5.4-mini'],
+    summary: ['gpt-5-nano', 'gemini-2.5-flash-lite'],
+    ask: ['gpt-5-nano', 'gemini-2.5-flash-lite'],
   },
   trial: {
     summary: [
-      'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5-nano', 'gpt-5-mini',
+      'gpt-5.4-mini', 'gpt-5-nano',
+      'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite',
       'claude-haiku-4-5-20251001',
-      'grok-4-1-fast-non-reasoning',
+      'grok-4.3',
     ],
     ask: [
-      'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5-nano', 'gpt-5-mini',
+      'gpt-5.4-mini', 'gpt-5-nano',
+      'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite',
       'claude-haiku-4-5-20251001',
-      'grok-4-1-fast-non-reasoning',
+      'grok-4.3',
     ],
   },
   pro: {
     summary: [
-      'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5-nano', 'gpt-5-mini',
+      'gpt-5.4-mini', 'gpt-5-nano',
+      'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite',
       'claude-haiku-4-5-20251001',
-      'grok-4-1-fast-non-reasoning',
+      'grok-4.3',
     ],
     ask: [
-      'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5-nano', 'gpt-5-mini',
+      'gpt-5.4-mini', 'gpt-5-nano',
+      'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite',
       'claude-haiku-4-5-20251001',
-      'grok-4-1-fast-non-reasoning',
+      'grok-4.3',
     ],
   },
   heavy: {
     summary: [
-      'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.4', 'gpt-5-nano', 'gpt-5-mini', 'gpt-5',
-      'claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-6',
-      'grok-4-1-fast-non-reasoning', 'grok-4-1-fast-reasoning',
-      'grok-4.20-0309-non-reasoning', 'grok-4.20-0309-reasoning',
+      'gpt-5.4-mini', 'gpt-5-nano', 'gpt-5.4',
+      'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.1-pro-preview',
+      'claude-haiku-4-5-20251001', 'claude-sonnet-4-6',
+      'grok-4.3',
     ],
     ask: [
-      'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.4', 'gpt-5-nano', 'gpt-5-mini', 'gpt-5',
-      'claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-6',
-      'grok-4-1-fast-non-reasoning', 'grok-4-1-fast-reasoning',
-      'grok-4.20-0309-non-reasoning', 'grok-4.20-0309-reasoning',
+      'gpt-5.4-mini', 'gpt-5-nano', 'gpt-5.4',
+      'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.1-pro-preview',
+      'claude-haiku-4-5-20251001', 'claude-sonnet-4-6',
+      'grok-4.3',
     ],
   },
 };

@@ -1292,16 +1292,15 @@ export default function Settings() {
                 >
                   <option value="auto">自動（推奨・コストと精度のバランス）</option>
                   <optgroup label="OpenAI">
-                    <option value="openai:gpt-5-nano">⭐ gpt-5-nano（推奨・最安・十分な精度）</option>
-                    <option value="openai:gpt-5.4-nano">gpt-5.4-nano</option>
-                    <option value="openai:gpt-5.4-mini">gpt-5.4-mini（やや精度↑）</option>
+                    <option value="openai:gpt-5-nano">gpt-5-nano（最安）</option>
+                    <option value="openai:gpt-5.4-mini">gpt-5.4-mini（推奨）</option>
                   </optgroup>
                   <optgroup label="Google Gemini">
-                    <option value="gemini:gemini-3.1-flash-lite-preview">gemini-3.1-flash-lite</option>
-                    <option value="gemini:gemini-3-flash-preview">gemini-3-flash</option>
+                    <option value="gemini:gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option>
+                    <option value="gemini:gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
                   </optgroup>
                   <optgroup label="xAI Grok">
-                    <option value="grok:grok-4-1-fast-non-reasoning">grok-4-1-fast</option>
+                    <option value="grok:grok-4.3">Grok 4.3</option>
                   </optgroup>
                   <optgroup label="Anthropic Claude">
                     <option value="claude:claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
@@ -1312,8 +1311,8 @@ export default function Settings() {
                   </optgroup>
                 </select>
                 <div className="bg-blue-900/20 border border-blue-700/40 rounded px-2 py-1.5 text-[11px] text-gray-300 leading-relaxed">
-                  💡 <strong className="text-white">gpt-5-nano 推奨理由</strong>:
-                  録音1件あたり約 <strong className="text-white">¥0.02</strong>、日本語整形に必要十分な精度。
+                  <strong className="text-white">自動設定</strong>:
+                  利用可能なAPIキーから低コスト寄りの現行モデルを選びます。
                   APIエラー時はローカルLLM（Ollama/カスタム）に自動フォールバックします。
                   ローカルLLM未設定時はエラー通知してスキップ。
                 </div>
@@ -1348,6 +1347,21 @@ export default function Settings() {
       <section className="mb-8">
         <h2 className="text-base font-semibold text-white mb-3">要約</h2>
         <div className="bg-card border border-theme rounded-lg p-4 space-y-4">
+          <label className="flex items-start justify-between gap-4 cursor-pointer">
+            <div>
+              <span className="text-sm text-gray-300">アップロード後に自動要約する</span>
+              <p className="text-xs text-gray-400 mt-0.5">
+                OFFにすると、録音やテキストを取り込んだ後は文字起こしまで行い、要約は詳細画面から手動生成します。
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.auto_summarize_uploads !== false && settings.auto_summarize_uploads !== 'false'}
+              onChange={(e) => handleSave('auto_summarize_uploads', e.target.checked)}
+              className="mt-1 rounded"
+            />
+          </label>
+
           <div>
             <label className="block text-sm text-gray-400 mb-1">デフォルトLLM</label>
             <select
@@ -1759,4 +1773,3 @@ export default function Settings() {
     </div>
   )
 }
-

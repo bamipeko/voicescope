@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import { getTemplates, createTemplate, updateTemplate, deleteTemplate, testTemplate, getRecordings, reorderTemplates } from '../lib/api'
 import { formatDateOnly } from '../lib/date'
 import { useAppStore } from '../stores/appStore'
+import { ALL_PROVIDER_MODELS, getGroupedModelOptions, getModelLabel } from '../lib/models'
 
 const EMPTY_TEMPLATE = {
   name: '',
@@ -32,6 +33,7 @@ export default function Templates() {
   // Drag and drop state
   const [draggedId, setDraggedId] = useState(null)
   const [dragOverId, setDragOverId] = useState(null)
+  const groupedModelOptions = getGroupedModelOptions(ALL_PROVIDER_MODELS)
 
   const fetchTemplates = async () => {
     try {
@@ -85,11 +87,15 @@ export default function Templates() {
         addToast('テンプレート名とプロンプトは必須です', 'error')
         return
       }
+      const payload = {
+        ...form,
+        preferred_llm_provider: '',
+      }
       if (editing === 'new') {
-        await createTemplate(form)
+        await createTemplate(payload)
         addToast('テンプレートを作成しました', 'success')
       } else {
-        await updateTemplate(editing, form)
+        await updateTemplate(editing, payload)
         addToast('テンプレートを更新しました', 'success')
       }
       setEditing(null)
@@ -245,9 +251,9 @@ export default function Templates() {
                   {t.description && (
                     <p className="text-sm text-gray-400 mt-1">{t.description}</p>
                   )}
-                  {t.preferred_llm_provider && (
+                  {t.preferred_llm_model && (
                     <p className="text-xs text-gray-400 mt-1">
-                      LLM: {t.preferred_llm_provider} / {t.preferred_llm_model}
+                      モデル: {getModelLabel(t.preferred_llm_model)}
                     </p>
                   )}
                 </div>
@@ -310,49 +316,29 @@ export default function Templates() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">優先LLM</label>
-                    <select
-                      value={form.preferred_llm_provider}
-                      onChange={(e) => setForm({ ...form, preferred_llm_provider: e.target.value })}
-                      className="w-full bg-input border border-theme-light rounded px-3 py-2 text-sm text-white"
-                    >
-                      <option value="">グローバル設定に従う</option>
-                      <option value="gemini">Gemini</option>
-                      <option value="grok">Grok</option>
-                      <option value="openai">OpenAI</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">モデル</label>
-                    <select
-                      value={form.preferred_llm_model}
-                      onChange={(e) => setForm({ ...form, preferred_llm_model: e.target.value })}
-                      className="w-full bg-input border border-theme-light rounded px-3 py-2 text-sm text-white"
-                    >
-                      <option value="">グローバル設定に従う</option>
-                      <optgroup label="Gemini">
-                        <option value="gemini-3-flash-preview">gemini-3-flash</option>
-                        <option value="gemini-3.1-flash-lite-preview">gemini-3.1-flash-lite</option>
-                        <option value="gemini-3.1-pro-preview">gemini-3.1-pro</option>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">優先モデル</label>
+                  <select
+                    value={form.preferred_llm_model}
+                    onChange={(e) => setForm({
+                      ...form,
+                      preferred_llm_provider: '',
+                      preferred_llm_model: e.target.value,
+                    })}
+                    className="w-full bg-input border border-theme-light rounded px-3 py-2 text-sm text-white"
+                  >
+                    <option value="">グローバル設定に従う</option>
+                    {groupedModelOptions.map(group => (
+                      <optgroup key={group.provider} label={group.label}>
+                        {group.models.map(model => (
+                          <option key={model.value} value={model.value}>{model.label}</option>
+                        ))}
                       </optgroup>
-                      <optgroup label="Grok">
-                        <option value="grok-4-1-fast-non-reasoning">grok-4-1-fast-non-reasoning</option>
-                        <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
-                        <option value="grok-4.20-0309-non-reasoning">grok-4.20</option>
-                        <option value="grok-4.20-0309-reasoning">grok-4.20 推論</option>
-                      </optgroup>
-                      <optgroup label="OpenAI">
-                        <option value="gpt-5.4-mini">gpt-5.4-mini</option>
-                        <option value="gpt-5.4-nano">gpt-5.4-nano</option>
-                        <option value="gpt-5.4">gpt-5.4</option>
-                        <option value="gpt-5-nano">gpt-5-nano</option>
-                        <option value="gpt-5-mini">gpt-5-mini</option>
-                        <option value="gpt-5">gpt-5</option>
-                      </optgroup>
-                    </select>
-                  </div>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    プロバイダはモデル名から自動判定します。
+                  </p>
                 </div>
 
                 {form.is_default ? (

@@ -1,0 +1,23 @@
+# Capacitor / Android build artifacts
+node_modules/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/release/
+android/app/src/main/assets/public/
+android/keystores/
+*.keystore
+*.jks
+
+# Generated config
+android/app/src/main/AndroidManifest.xml.bak
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

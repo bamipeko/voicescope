@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS summaries (
   template_id INTEGER REFERENCES templates(id),
   llm_provider TEXT NOT NULL,
   llm_model TEXT NOT NULL,
+  custom_prompt TEXT,
   content TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

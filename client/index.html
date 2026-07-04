@@ -12,11 +12,70 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Emergency recovery panel — shown only if React fails to mount within
+         5 seconds. Most common cause: a stale Service Worker serving an old
+         index.html that points to a JS bundle that no longer exists. The
+         button below force-unregisters all SWs, clears caches, and reloads. -->
+    <div id="recovery-panel" style="display:none;position:fixed;inset:0;background:#1a1a1a;color:#eee;font-family:system-ui,sans-serif;padding:40px;z-index:99999;overflow:auto;">
+      <h1 style="margin-top:0;font-size:20px;">⚠ アプリが起動できませんでした</h1>
+      <p style="font-size:14px;color:#aaa;line-height:1.6;">
+        古いキャッシュが残っている可能性があります。下のボタンで Service Worker とキャッシュを完全クリアしてリロードしてください。
+      </p>
+      <button id="recovery-button" style="margin-top:16px;padding:12px 24px;background:#3b82f6;color:white;border:0;border-radius:6px;font-size:14px;cursor:pointer;">
+        🔄 キャッシュをクリアして再起動
+      </button>
+      <details style="margin-top:24px;color:#888;font-size:12px;">
+        <summary style="cursor:pointer;">技術的な詳細</summary>
+        <pre id="recovery-detail" style="margin-top:8px;background:#000;padding:12px;border-radius:4px;overflow:auto;font-size:11px;"></pre>
+      </details>
+    </div>
+
     <script type="module" src="/src/main.jsx"></script>
     <script>
+      // Watchdog: if React hasn't rendered into #root within 5s, surface a
+      // recovery UI so users can self-rescue from SW caching black holes.
+      var __watchdog = setTimeout(function () {
+        var root = document.getElementById('root');
+        if (!root || root.childElementCount === 0) {
+          document.getElementById('recovery-panel').style.display = 'block';
+          var detail = 'window.location: ' + window.location.href + '\n'
+            + 'userAgent: ' + navigator.userAgent + '\n'
+            + 'serviceWorker controller: ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'yes' : 'no');
+          document.getElementById('recovery-detail').textContent = detail;
+        }
+      }, 5000);
+      // Cancel the watchdog as soon as React mounts something into #root.
+      var __mo = new MutationObserver(function () {
+        var root = document.getElementById('root');
+        if (root && root.childElementCount > 0) {
+          clearTimeout(__watchdog);
+          __mo.disconnect();
+        }
+      });
+      __mo.observe(document.getElementById('root'), { childList: true });
+
+      // Recovery button handler — nuke SWs + caches, then hard reload.
+      document.getElementById('recovery-button').addEventListener('click', async function () {
+        this.textContent = 'クリア中...';
+        this.disabled = true;
+        try {
+          if ('serviceWorker' in navigator) {
+            var regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(function (r) { return r.unregister(); }));
+          }
+          if ('caches' in window) {
+            var keys = await caches.keys();
+            await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          }
+        } catch (e) { /* ignore — proceed with reload anyway */ }
+        // Cache-bust the HTML to bypass any HTTP cache.
+        window.location.href = '/?_cb=' + Date.now();
+      });
+
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
         });
       }
     </script>

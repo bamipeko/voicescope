@@ -6,7 +6,7 @@ export async function summarizeWithGemini(text, systemPrompt, options = {}) {
     throw new Error('GEMINI_API_KEY が設定されていません');
   }
 
-  const model = options.model || 'gemini-3.1-flash-lite-preview';
+  const model = options.model || 'gemini-3.1-flash-lite';
   const genAI = new GoogleGenerativeAI(apiKey);
   const genModel = genAI.getGenerativeModel({
     model,

@@ -1,4 +1,4 @@
-name = "voicescope-api"
+name = "voicescope"
 main = "src/index.ts"
 compatibility_date = "2026-04-01"
 
@@ -7,4 +7,4 @@ ENVIRONMENT = "production"
 
 [[kv_namespaces]]
 binding = "CODES"
-id = "889b99951eca43da9ed20fabb1202728"
+id = "5254f3b791f64a91840d254d3f7b059a"

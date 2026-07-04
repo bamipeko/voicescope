@@ -172,17 +172,35 @@ async function startServer(options = {}) {
 
     let stderrBuffer = '';
 
+    // Persist server stdout/stderr to a file the user can actually open.
+    // %APPDATA%\VoiceScope\logs\server-YYYY-MM-DD.log
+    let logStream = null;
+    try {
+      const userData = app.getPath('userData');
+      const logsDir = path.join(userData, 'logs');
+      if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+      const today = new Date().toISOString().slice(0, 10);
+      const logPath = path.join(logsDir, `server-${today}.log`);
+      logStream = fs.createWriteStream(logPath, { flags: 'a' });
+      logStream.write(`\n========== Session start: ${new Date().toISOString()} ==========\n`);
+      console.log(`[ServerManager] Logging server output to ${logPath}`);
+    } catch (e) {
+      console.warn('[ServerManager] Could not open log file:', e.message);
+    }
+
     serverProcess.stdout.on('data', (data) => {
-      const msg = data.toString().trim();
-      if (msg) console.log(`[Server] ${msg}`);
+      const msg = data.toString();
+      if (msg.trim()) console.log(`[Server] ${msg.trim()}`);
+      if (logStream) logStream.write(msg);
     });
 
     serverProcess.stderr.on('data', (data) => {
-      const msg = data.toString().trim();
-      if (msg) {
-        console.error(`[Server:err] ${msg}`);
-        stderrBuffer += msg + '\n';
+      const msg = data.toString();
+      if (msg.trim()) {
+        console.error(`[Server:err] ${msg.trim()}`);
+        stderrBuffer += msg.trim() + '\n';
       }
+      if (logStream) logStream.write(`[STDERR] ${msg}`);
     });
 
     serverProcess.on('error', (err) => {

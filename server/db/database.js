@@ -108,6 +108,23 @@ export function execute(sql, params = []) {
   runAndSave(sql, params);
 }
 
+// Helper: run INSERT and return the new row's id, atomically wrt save().
+//
+// CRITICAL: sql.js's db.export() (called inside save()) closes and re-opens
+// the database connection, which resets `last_insert_rowid()` to 0. So we
+// MUST read the rowid BEFORE calling save(). This was a silent corruption
+// bug — `lastInsertRowId()` called after `execute(INSERT...)` always saw 0,
+// causing UPDATE WHERE id=0 to match nothing and the row's payload to stay
+// at its placeholder value.
+export function executeReturningId(sql, params = []) {
+  db.run(sql, params);
+  // Read rowid before save() trashes it.
+  const result = db.exec('SELECT last_insert_rowid() AS id');
+  const id = result?.[0]?.values?.[0]?.[0] ?? 0;
+  save();
+  return id;
+}
+
 // Helper: SELECT single row
 export function queryOne(sql, params = []) {
   const stmt = db.prepare(sql);
@@ -446,6 +463,19 @@ function runMigrations() {
     console.warn('[Migration] refined_segments_json check failed:', e.message);
   }
 
+  // Add custom_prompt column to summaries if missing
+  try {
+    const summaryCols = db.exec("PRAGMA table_info(summaries)");
+    const summaryColNames = summaryCols[0]?.values?.map(r => r[1]) || [];
+    if (!summaryColNames.includes('custom_prompt')) {
+      db.run('ALTER TABLE summaries ADD COLUMN custom_prompt TEXT');
+      save();
+      console.log('[Migration] Added custom_prompt column to summaries');
+    }
+  } catch (e) {
+    console.warn('[Migration] summaries columns check failed:', e.message);
+  }
+
   // Add importance column to recordings if missing
   try {
     const recCols = db.exec("PRAGMA table_info(recordings)");
@@ -588,6 +618,65 @@ function runMigrations() {
   } catch (e) {
     // Already exists
   }
+
+  // Migrate retired/removed model ids to the current supported set.
+  try {
+    const modelReplacements = {
+      'gpt-5.4-nano': 'gpt-5-nano',
+      'gpt-5-mini': 'gpt-5.4-mini',
+      'gpt-5': 'gpt-5.4',
+      'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
+      'gemini-3-flash-preview': 'gemini-3.1-flash-lite',
+      'gemini-3-pro-preview': 'gemini-3.1-pro-preview',
+      'grok-4-1-fast-non-reasoning': 'grok-4.3',
+      'grok-4-1-fast-reasoning': 'grok-4.3',
+      'grok-4.20-0309-non-reasoning': 'grok-4.3',
+      'grok-4.20-0309-reasoning': 'grok-4.3',
+      'claude-opus-4-6': 'claude-sonnet-4-6',
+      'claude-opus-4-7': 'claude-sonnet-4-6',
+    };
+
+    for (const [oldModel, newModel] of Object.entries(modelReplacements)) {
+      db.run(
+        `UPDATE settings
+         SET value = ?
+         WHERE key IN ('default_summary_model', 'default_ask_model')
+           AND value = ?`,
+        [JSON.stringify(newModel), JSON.stringify(oldModel)]
+      );
+      db.run(
+        'UPDATE templates SET preferred_llm_model = ? WHERE preferred_llm_model = ?',
+        [newModel, oldModel]
+      );
+    }
+
+    const prefReplacements = {
+      'openai:gpt-5.4-nano': 'openai:gpt-5-nano',
+      'openai:gpt-5-mini': 'openai:gpt-5.4-mini',
+      'openai:gpt-5': 'openai:gpt-5.4',
+      'gemini:gemini-3.1-flash-lite-preview': 'gemini:gemini-3.1-flash-lite',
+      'gemini:gemini-3-flash-preview': 'gemini:gemini-3.1-flash-lite',
+      'gemini:gemini-3-pro-preview': 'gemini:gemini-3.1-pro-preview',
+      'grok:grok-4-1-fast-non-reasoning': 'grok:grok-4.3',
+      'grok:grok-4-1-fast-reasoning': 'grok:grok-4.3',
+      'grok:grok-4.20-0309-non-reasoning': 'grok:grok-4.3',
+      'grok:grok-4.20-0309-reasoning': 'grok:grok-4.3',
+      'claude:claude-opus-4-6': 'claude:claude-sonnet-4-6',
+      'claude:claude-opus-4-7': 'claude:claude-sonnet-4-6',
+    };
+
+    for (const [oldPref, newPref] of Object.entries(prefReplacements)) {
+      db.run(
+        "UPDATE settings SET value = ? WHERE key = 'refine_preference' AND value = ?",
+        [JSON.stringify(newPref), JSON.stringify(oldPref)]
+      );
+    }
+
+    db.run("UPDATE templates SET preferred_llm_provider = NULL WHERE preferred_llm_model IS NOT NULL");
+    save();
+  } catch (e) {
+    console.warn('[Migration] model id migration failed:', e.message);
+  }
 }
 
 function seedTemplates() {
@@ -635,6 +724,7 @@ function seedSettings() {
     default_transcription_engine: 'openai',
     default_summary_provider: 'openai',
     default_summary_model: 'gpt-5.4-mini',
+    auto_summarize_uploads: true,
     default_language: 'auto',
     diarization_enabled: 'true',
     data_dir: path.dirname(DB_PATH),

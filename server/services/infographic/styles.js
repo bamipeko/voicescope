@@ -1,6 +1,6 @@
 /**
  * Infographic style presets — short prompt fragments that describe the
- * visual direction. Used as part of the gpt-image-1 prompt.
+ * visual direction. Used as part of the gpt-image-2 prompt.
  *
  * Add new presets here; the client UI auto-picks them up via
  * /api/infographic/styles.

@@ -46,6 +46,7 @@ router.get('/', (req, res) => {
 const ALLOWED_SETTINGS = [
   'default_transcription_engine', 'default_summary_provider', 'default_summary_model',
   'default_ask_provider', 'default_ask_model', 'auto_refine_transcription', 'refine_preference',
+  'auto_summarize_uploads',
   'default_language', 'diarization_enabled', 'custom_keywords', 'recording_mode',
   'local_whisper_model', 'whisper_cpp_model', 'local_ollama_url', 'ollama_model',
   'auto_title',

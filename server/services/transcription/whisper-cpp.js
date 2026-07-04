@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
@@ -265,36 +266,50 @@ function resolveModel(options) {
   return null;
 }
 
+// Chunked transcription settings.
+// whisper.cpp CPU decoding of long audio can legitimately take hours (large-v3
+// runs near realtime on 8 threads), so there must be NO fixed wall-clock limit.
+// Instead: split audio into chunks (bounds memory, gives per-chunk progress)
+// and kill only when the process stops producing output entirely.
+const CHUNK_SEC = 600;                    // 10-minute chunks
+const STALL_TIMEOUT_MS = 10 * 60 * 1000;  // no stdout/stderr for 10 min = stalled
+
 /**
- * Convert any audio format whisper.cpp can't reliably read (webm/ogg/m4a/flac
- * with non-standard codecs) into 16kHz mono WAV via ffmpeg. Returns a path to
- * the temp WAV that the caller is responsible for deleting.
- *
- * whisper.cpp 1.8.x officially supports only WAV PCM; .webm produced by browser
- * MediaRecorder uses Opus and silently produces empty output if fed directly.
+ * Duration in seconds of a 16kHz mono s16le WAV produced by our ffmpeg calls.
+ * Used to accumulate exact chunk offsets (segment_time is not sample-exact).
  */
-async function ensureWhisperReadable(audioPath) {
-  const ext = path.extname(audioPath).toLowerCase();
-  if (ext === '.wav') return { path: audioPath, isTemp: false };
-
-  // Need ffmpeg to convert. Resolve from PATH or from common locations.
-  const ffmpegCmd = await findFfmpeg();
-  if (!ffmpegCmd) {
-    throw new Error(
-      'whisper.cpp で .webm / .mp3 / .m4a / .ogg / .flac を扱うには ffmpeg が必要です。\n' +
-      '推奨: winget install ffmpeg または https://www.gyan.dev/ffmpeg/builds/ から取得して PATH に追加してください。'
-    );
+function wavDurationSec(wavPath) {
+  try {
+    const bytes = fs.statSync(wavPath).size - 44; // 44-byte canonical WAV header
+    return Math.max(0, bytes / (16000 * 2));
+  } catch {
+    return 0;
   }
+}
 
-  const tmpWav = path.join(path.dirname(audioPath), `_whispercpp_${Date.now()}.wav`);
+/**
+ * Split audio into 16kHz mono WAV chunks via ffmpeg's segment muxer.
+ * whisper.cpp 1.8.x officially supports only WAV PCM; .webm produced by browser
+ * MediaRecorder uses Opus and silently produces empty output if fed directly,
+ * so conversion happens here in the same pass as the split.
+ * Returns { dir, chunks } — caller must remove dir when done.
+ */
+async function segmentAudio(audioPath, ffmpegCmd, chunkSec) {
+  const dir = path.join(path.dirname(audioPath), `_whispercpp_chunks_${Date.now()}`);
+  mkdirSync(dir, { recursive: true });
+  const pattern = path.join(dir, 'chunk_%04d.wav');
+
   await new Promise((resolve, reject) => {
     const proc = spawn(ffmpegCmd, [
       '-y',
       '-i', audioPath,
-      '-ar', '16000',  // 16kHz
+      '-ar', '16000',   // 16kHz
       '-ac', '1',       // mono
       '-c:a', 'pcm_s16le',
-      tmpWav,
+      '-f', 'segment',
+      '-segment_time', String(chunkSec),
+      '-reset_timestamps', '1',
+      pattern,
     ], { windowsHide: true });
     let stderr = '';
     proc.stderr.on('data', (d) => { stderr += d.toString(); });
@@ -305,7 +320,15 @@ async function ensureWhisperReadable(audioPath) {
     });
   });
 
-  return { path: tmpWav, isTemp: true };
+  const chunks = fs.readdirSync(dir)
+    .filter((f) => f.startsWith('chunk_') && f.endsWith('.wav'))
+    .sort()
+    .map((f) => path.join(dir, f));
+  if (chunks.length === 0) {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+    throw new Error('ffmpegが音声チャンクを生成できませんでした。音声ファイルが破損している可能性があります。');
+  }
+  return { dir, chunks };
 }
 
 async function findFfmpeg() {
@@ -334,7 +357,141 @@ async function findFfmpeg() {
 }
 
 /**
+ * Parse whisper-cli output into segments.
+ * Primary: the JSON file written via -of. Fallback: [ts --> ts] stdout lines.
+ */
+function parseWhisperOutput(jsonPath, stdout, fallbackLanguage) {
+  if (existsSync(jsonPath)) {
+    const result = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    try { fs.unlinkSync(jsonPath); } catch {}
+
+    const segments = [];
+    const transcription = result.transcription || result.segments || [];
+    for (const seg of transcription) {
+      const text = (seg.text || '').trim();
+      if (!text) continue;
+
+      // Prefer millisecond offsets, then HH:MM:SS timestamps, then centiseconds
+      const start = seg.offsets?.from != null
+        ? seg.offsets.from / 1000
+        : seg.timestamps?.from
+          ? parseTimestamp(seg.timestamps.from)
+          : (seg.start || seg.t0 || 0) / 100;
+      const end = seg.offsets?.to != null
+        ? seg.offsets.to / 1000
+        : seg.timestamps?.to
+          ? parseTimestamp(seg.timestamps.to)
+          : (seg.end || seg.t1 || 0) / 100;
+
+      segments.push({
+        start: Math.round(start * 100) / 100,
+        end: Math.round(end * 100) / 100,
+        speaker: 'speaker_0',
+        text,
+      });
+    }
+    return { segments, language: result.result?.language || fallbackLanguage };
+  }
+
+  // Fallback: parse text output line by line
+  const segments = [];
+  const timeRegex = /\[(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})\]\s*(.*)/;
+  for (const line of stdout.split('\n')) {
+    const match = line.match(timeRegex);
+    if (match) {
+      segments.push({
+        start: parseTimestamp(match[1]),
+        end: parseTimestamp(match[2]),
+        speaker: 'speaker_0',
+        text: match[3].trim(),
+      });
+    }
+  }
+  if (segments.length === 0) {
+    throw new Error(`whisper.cppの出力を解析できません:\n${stdout.slice(0, 500)}`);
+  }
+  return { segments, language: fallbackLanguage };
+}
+
+/**
+ * Run whisper-cli on a single WAV file. Returns { segments, language }.
+ * No fixed wall-clock timeout (long audio legitimately takes hours on CPU);
+ * a stall watchdog kills the process only when it stops producing output.
+ */
+function runWhisperCli({ wavPath, modelPath, language, threads, label = '' }) {
+  const outPrefix = wavPath.replace(/\.wav$/i, '') + '_out';
+  const jsonPath = `${outPrefix}.json`;
+  const args = [
+    '-m', modelPath,
+    '-f', wavPath,
+    '--output-json',      // JSON is the primary output we parse
+    '-of', outPrefix,     // explicit output path (default derives from -f and broke for temp files)
+    '-pp',                // print progress (also feeds the stall watchdog)
+    '-t', String(threads),
+    '-l', language,
+  ];
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(getMainExePath(), args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let lastOutputAt = Date.now();
+    let killedForStall = false;
+
+    const watchdog = setInterval(() => {
+      if (Date.now() - lastOutputAt > STALL_TIMEOUT_MS) {
+        killedForStall = true;
+        try { proc.kill(); } catch {}
+      }
+    }, 30000);
+
+    proc.stdout.on('data', (data) => {
+      lastOutputAt = Date.now();
+      stdout += data.toString();
+    });
+    proc.stderr.on('data', (data) => {
+      lastOutputAt = Date.now();
+      const msg = data.toString().trim();
+      if (msg) {
+        console.log(`[whisper.cpp]${label} ${msg}`);
+        stderr += msg + '\n';
+      }
+    });
+
+    proc.on('error', (err) => {
+      clearInterval(watchdog);
+      reject(new Error(`whisper.cpp実行エラー: ${err.message}`));
+    });
+
+    proc.on('close', (code) => {
+      clearInterval(watchdog);
+      if (killedForStall) {
+        try { fs.unlinkSync(jsonPath); } catch {}
+        reject(new Error(`whisper.cppが${Math.round(STALL_TIMEOUT_MS / 60000)}分間応答しないため中断しました`));
+        return;
+      }
+      if (code !== 0) {
+        try { fs.unlinkSync(jsonPath); } catch {}
+        reject(new Error(`whisper.cppが異常終了しました (code ${code})\n${stderr.slice(-500)}`));
+        return;
+      }
+      try {
+        resolve(parseWhisperOutput(jsonPath, stdout, language));
+      } catch (parseErr) {
+        reject(parseErr);
+      }
+    });
+  });
+}
+
+/**
  * Transcribe audio using whisper.cpp binary.
+ * Long audio is split into CHUNK_SEC chunks and transcribed sequentially so
+ * that memory use and failure impact stay independent of recording length.
  */
 export async function transcribeWithWhisperCpp(audioPath, options = {}) {
   if (!isWhisperCppInstalled()) {
@@ -353,148 +510,80 @@ export async function transcribeWithWhisperCpp(audioPath, options = {}) {
   const modelName = resolved.name;
   const modelPath = resolved.path;
 
-  // Convert non-WAV input via ffmpeg (whisper.cpp 1.8.x only supports WAV PCM)
-  const audio = await ensureWhisperReadable(audioPath);
+  const remedy = 'ヒント: 設定画面で小さいWhisperモデル（medium / small）に切り替えるか、クラウド文字起こしで再実行してください。';
+  const threads = Math.max(1, Math.floor(os.cpus().length / 2)); // half of CPU cores
+  const requestedLang = (!options.language || options.language === 'auto') ? 'auto' : options.language;
+  const chunkSec = options.chunkSec || CHUNK_SEC;
+  const ffmpegCmd = await findFfmpeg();
 
-  const language = (!options.language || options.language === 'auto') ? 'auto' : options.language;
-  const mainExe = getMainExePath();
+  const buildResult = (segments, detectedLang, chunkCount) => ({
+    engine: 'whisper-cpp',
+    language: detectedLang,
+    segments,
+    speakers: [{ id: 'speaker_0', label: 'speaker_0' }],
+    raw_response: { model: modelName, chunks: chunkCount, chunk_sec: chunkSec },
+  });
 
-  const args = [
-    '-m', modelPath,
-    '-f', audio.path,
-    '--output-json',      // JSON output
-    '--no-timestamps',    // We'll use the JSON timestamps
-    '-pp',                // Print progress
-    '-t', String(Math.max(1, Math.floor((await import('os')).cpus().length / 2))), // Use half of CPU cores
-  ];
-
-  if (language !== 'auto') {
-    args.push('-l', language);
-  } else {
-    args.push('-l', 'auto');
+  if (!ffmpegCmd) {
+    if (path.extname(audioPath).toLowerCase() !== '.wav') {
+      throw new Error(
+        'whisper.cpp で .webm / .mp3 / .m4a / .ogg / .flac を扱うには ffmpeg が必要です。\n' +
+        '推奨: winget install ffmpeg または https://www.gyan.dev/ffmpeg/builds/ から取得して PATH に追加してください。'
+      );
+    }
+    // Legacy single-pass path: without ffmpeg we cannot split, so run whole file
+    console.log(`[whisper.cpp] Transcribing (no ffmpeg, single pass): model=${modelName}, language=${requestedLang}, audio=${audioPath}`);
+    try {
+      const out = await runWhisperCli({ wavPath: audioPath, modelPath, language: requestedLang, threads });
+      return buildResult(out.segments, out.language, 1);
+    } catch (err) {
+      throw new Error(`${err.message}\n${remedy}`);
+    }
   }
 
-  console.log(`[whisper.cpp] Transcribing: model=${modelName}, language=${language}, audio=${audio.path}`);
+  const { dir, chunks } = await segmentAudio(audioPath, ffmpegCmd, chunkSec);
+  console.log(`[whisper.cpp] Transcribing: model=${modelName}, language=${requestedLang}, chunks=${chunks.length} x ~${chunkSec}s, audio=${audioPath}`);
 
-  // Cleanup helper for the temp WAV (runs on success, error, and parse failures alike)
-  const cleanupTempWav = () => {
-    if (audio.isTemp) {
-      try { fs.unlinkSync(audio.path); } catch {}
-    }
-  };
+  try {
+    const allSegments = [];
+    let offsetSec = 0;
+    let effectiveLang = requestedLang; // lock in detected language after chunk 1
+    let detectedLang = requestedLang;
 
-  return new Promise((resolve, reject) => {
-    const proc = spawn(mainExe, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      windowsHide: true,
-      timeout: 1800000, // 30 min timeout
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    proc.stdout.on('data', (data) => { stdout += data.toString(); });
-    proc.stderr.on('data', (data) => {
-      const msg = data.toString().trim();
-      if (msg) {
-        console.log(`[whisper.cpp] ${msg}`);
-        stderr += msg + '\n';
-      }
-    });
-
-    proc.on('error', (err) => {
-      cleanupTempWav();
-      reject(new Error(`whisper.cpp実行エラー: ${err.message}`));
-    });
-
-    proc.on('close', (code) => {
-      cleanupTempWav();
-      if (code !== 0) {
-        reject(new Error(`whisper.cppが異常終了しました (code ${code})\n${stderr.slice(-500)}`));
-        return;
-      }
-
+    for (let i = 0; i < chunks.length; i++) {
+      const label = chunks.length > 1 ? ` [${i + 1}/${chunks.length}]` : '';
+      let out;
       try {
-        // whisper.cpp --output-json outputs to a .json file next to the audio
-        // But with stdout, we try to parse the output
-        // Actually, whisper.cpp writes JSON to <audioPath>.json
-        const jsonPath = audioPath + '.json';
-        let result;
-
-        if (existsSync(jsonPath)) {
-          result = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-          // Clean up the json file
-          try { fs.unlinkSync(jsonPath); } catch {}
-        } else {
-          // Try parsing stdout as JSON
-          result = JSON.parse(stdout);
-        }
-
-        // Parse whisper.cpp JSON format
-        const segments = [];
-        const transcription = result.transcription || result.segments || [];
-
-        for (const seg of transcription) {
-          const text = (seg.text || '').trim();
-          if (!text) continue;
-
-          // whisper.cpp uses timestamps object or offsets
-          const start = seg.timestamps?.from
-            ? parseTimestamp(seg.timestamps.from)
-            : (seg.start || seg.t0 || 0) / 100;
-          const end = seg.timestamps?.to
-            ? parseTimestamp(seg.timestamps.to)
-            : (seg.end || seg.t1 || 0) / 100;
-
-          segments.push({
-            start: Math.round(start * 100) / 100,
-            end: Math.round(end * 100) / 100,
-            speaker: 'speaker_0',
-            text,
-          });
-        }
-
-        const detectedLang = result.result?.language || language;
-
-        resolve({
-          engine: 'whisper-cpp',
-          language: detectedLang,
-          segments,
-          speakers: [{ id: 'speaker_0', label: 'speaker_0' }],
-          raw_response: result,
-        });
-      } catch (parseErr) {
-        // Fallback: parse text output line by line
-        const lines = stdout.split('\n').filter(l => l.trim());
-        const segments = [];
-        const timeRegex = /\[(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})\]\s*(.*)/;
-
-        for (const line of lines) {
-          const match = line.match(timeRegex);
-          if (match) {
-            segments.push({
-              start: parseTimestamp(match[1]),
-              end: parseTimestamp(match[2]),
-              speaker: 'speaker_0',
-              text: match[3].trim(),
-            });
-          }
-        }
-
-        if (segments.length > 0) {
-          resolve({
-            engine: 'whisper-cpp',
-            language: language,
-            segments,
-            speakers: [{ id: 'speaker_0', label: 'speaker_0' }],
-            raw_response: { text: stdout },
-          });
-        } else {
-          reject(new Error(`whisper.cppの出力を解析できません:\n${stdout.slice(0, 500)}`));
-        }
+        out = await runWhisperCli({ wavPath: chunks[i], modelPath, language: effectiveLang, threads, label });
+      } catch (err) {
+        const where = chunks.length > 1 ? `チャンク ${i + 1}/${chunks.length} で失敗 (model=${modelName})\n` : '';
+        throw new Error(`${where}${err.message}\n${remedy}`);
       }
-    });
-  });
+
+      if (i === 0 && effectiveLang === 'auto' && out.language && out.language !== 'auto') {
+        effectiveLang = out.language; // consistent language + skips re-detection on later chunks
+        detectedLang = out.language;
+      }
+
+      // whisper pads to 30s windows, so a chunk's final segment can claim an
+      // end time past the chunk's real duration — clamp to avoid overlapping
+      // the next chunk's timestamps
+      const chunkDur = wavDurationSec(chunks[i]) || chunkSec;
+      for (const seg of out.segments) {
+        const end = Math.min(seg.end, chunkDur);
+        allSegments.push({
+          ...seg,
+          start: Math.round((Math.min(seg.start, end) + offsetSec) * 100) / 100,
+          end: Math.round((end + offsetSec) * 100) / 100,
+        });
+      }
+      offsetSec += chunkDur;
+    }
+
+    return buildResult(allSegments, detectedLang, chunks.length);
+  } finally {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  }
 }
 
 /**

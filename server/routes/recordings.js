@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
-import { execute, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
+import { execute, executeReturningId, queryOne, queryAll, lastInsertRowId } from '../db/database.js';
 import { transcribe } from '../services/transcription/index.js';
 import { summarize } from '../services/summary/index.js';
 import { runPipeline } from '../services/pipeline.js';
@@ -47,6 +47,21 @@ function safeAudioPath(filePath) {
   const resolved = path.resolve(AUDIO_DIR, filePath);
   if (!resolved.startsWith(path.resolve(AUDIO_DIR))) return null;
   return resolved;
+}
+
+function getAutoSummarizeDefault() {
+  const setting = queryOne("SELECT value FROM settings WHERE key = 'auto_summarize_uploads'");
+  if (!setting) return true;
+  try {
+    return JSON.parse(setting.value) !== false;
+  } catch {
+    return setting.value !== 'false';
+  }
+}
+
+function shouldAutoSummarize(value) {
+  if (value === undefined) return getAutoSummarizeDefault();
+  return value !== 'false' && value !== false;
 }
 
 // Multer config for file uploads
@@ -142,7 +157,7 @@ router.post('/upload', uploadLimiter, upload.single('audio'), (req, res) => {
     }
 
     // Upload options: auto_summarize, template_id, granularity
-    const autoSummarize = req.body.auto_summarize !== 'false'; // default true
+    const autoSummarize = shouldAutoSummarize(req.body.auto_summarize);
     const pipelineOptions = {};
     if (req.body.template_id) pipelineOptions.templateId = req.body.template_id;
     if (req.body.granularity) pipelineOptions.granularity = req.body.granularity;
@@ -234,7 +249,7 @@ router.post('/upload-text', uploadLimiter, textUpload.single('textfile'), async 
     );
 
     // Upload options
-    const autoSummarize = req.body.auto_summarize !== 'false';
+    const autoSummarize = shouldAutoSummarize(req.body.auto_summarize);
     const pipelineOptions = {
       skipTranscription: true,
       skipSummary: !autoSummarize,
@@ -332,6 +347,21 @@ router.get('/', (req, res) => {
     const recordings = queryAll(sql, params);
 
     // Attach tags for each recording
+    // Build a single map of infographic counts so we don't run N queries.
+    // Also captures whether any image_paths_json is non-empty (i.e. at least
+    // one usable PNG exists for that recording).
+    const igCounts = queryAll(
+      `SELECT recording_id,
+              COUNT(*) AS total,
+              SUM(CASE WHEN image_paths_json != '[]' AND image_paths_json IS NOT NULL THEN 1 ELSE 0 END) AS with_files
+       FROM infographics
+       GROUP BY recording_id`
+    );
+    const igMap = {};
+    for (const r of igCounts) {
+      igMap[r.recording_id] = { total: Number(r.total) || 0, withFiles: Number(r.with_files) || 0 };
+    }
+
     for (const rec of recordings) {
       rec.tags = queryAll(
         `SELECT t.id, t.name, t.color, rt.source
@@ -339,6 +369,7 @@ router.get('/', (req, res) => {
          WHERE rt.recording_id = ?`,
         [rec.id]
       );
+      rec.infographic_count = igMap[rec.id]?.withFiles || 0;
     }
 
     res.json(recordings);
@@ -554,46 +585,21 @@ router.post('/:id/transcribe', aiLimiter, async (req, res) => {
 
     execute('UPDATE recordings SET status = ? WHERE id = ?', ['transcribing', req.params.id]);
 
-    const options = {
+    // Run in the background like the upload route — long recordings can take
+    // an hour of whisper.cpp time, far beyond what an open HTTP request
+    // survives. Clients follow progress via status polling. The pipeline also
+    // re-refines and ends at a terminal status ('completed'/'error') so the UI
+    // never parks on 'transcribed'. Existing summaries are kept (skipSummary).
+    runPipeline(req.params.id, {
       engine: req.body.engine,
       language: req.body.language,
       diarize: req.body.diarize,
-    };
+      skipSummary: true,
+    }).catch(err => {
+      console.error(`Re-transcribe pipeline failed for ${req.params.id}:`, err.message);
+    });
 
-    const result = await transcribe(audioPath, options);
-
-    // Get duration if not set
-    if (!recording.duration_sec) {
-      const duration = await getAudioDuration(audioPath);
-      if (duration) {
-        execute('UPDATE recordings SET duration_sec = ? WHERE id = ?', [duration, req.params.id]);
-      }
-    }
-
-    // Save transcription
-    execute(
-      `INSERT INTO transcriptions (recording_id, engine, language, segments_json, speakers_json, raw_response_json)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        req.params.id,
-        result.engine,
-        result.language,
-        JSON.stringify(result.segments),
-        JSON.stringify(result.speakers),
-        JSON.stringify(result.raw_response),
-      ]
-    );
-
-    execute('UPDATE recordings SET status = ? WHERE id = ?', ['transcribed', req.params.id]);
-
-    const transcription = queryOne(
-      'SELECT * FROM transcriptions WHERE recording_id = ? ORDER BY created_at DESC LIMIT 1',
-      [req.params.id]
-    );
-    transcription.segments = result.segments;
-    transcription.speakers = result.speakers;
-
-    res.json(transcription);
+    res.status(202).json({ status: 'transcribing' });
   } catch (err) {
     console.error('Transcription error:', err);
     execute('UPDATE recordings SET status = ? WHERE id = ?', ['error', req.params.id]);
@@ -707,13 +713,13 @@ router.post('/:id/summarize', aiLimiter, validateModel('summary'), async (req, r
       customPrompt: req.body.custom_prompt,
     });
 
-    execute(
-      `INSERT INTO summaries (recording_id, template_id, llm_provider, llm_model, content)
-       VALUES (?, ?, ?, ?, ?)`,
-      [req.params.id, result.templateId, result.provider, result.model, result.content]
+    // executeReturningId — sql.js's save() resets last_insert_rowid() so we
+    // must capture the new id atomically with the INSERT.
+    const summaryId = executeReturningId(
+      `INSERT INTO summaries (recording_id, template_id, llm_provider, llm_model, custom_prompt, content)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [req.params.id, result.templateId, result.provider, result.model, result.customPrompt, result.content]
     );
-
-    const summaryId = lastInsertRowId();
     const summary = queryOne('SELECT * FROM summaries WHERE id = ?', [summaryId]);
     if (usedSelection) summary.used_selection = true;
     res.status(201).json(summary);

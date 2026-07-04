@@ -72,8 +72,8 @@
 - [x] ダウンロード進捗のリアルタイムポーリング表示
 
 ### LLMモデル設定（最新版）
-- Gemini: gemini-3.1-flash-lite-preview（デフォルト）
-- Grok: grok-4-1-fast-non-reasoning
+- Gemini: gemini-3.1-flash-lite（デフォルト）
+- Grok: grok-4.3
 - OpenAI: gpt-5.4-nano
 - Ollama: ユーザーがpullしたモデルから選択
 
@@ -106,4 +106,24 @@
 - [x] 旧暗号化キーのソース難読化（Base64化+TODO削除予定マーク）
 - [x] helmet導入（セキュリティヘッダー: CSP, X-Frame-Options, etc.）
 
-## 最終更新: 2026-04-03
+## 抜本見直し（2026-07-03）— 方針転換
+
+`state/rebuild_handoff_prompt.md` に基づく抜本レビューを実施。結果は `docs/rebuild-review-2026-07.md`。
+
+- 判断: **部分作り直し**
+- PC版（Electron）は凍結保守（新機能停止、重大バグのみ）
+- スマホ版は Capacitor 路線を破棄し **Expo (React Native) で新規構築**
+- worker/ は Phase R0 で即デプロイ
+- faster-whisper（Python経路）は廃止予定
+- Bami回答済み: 実機=OPPO Pad Air(OPD2102A) / iOSもやる(iPhone 11) / 録音3時間必要 / PC版ローカルエラーは whisper.cpp 長尺OOM と特定
+- **Phase R0 実装ブリーフ発行済み**: `docs/briefs/phase-R0-brief.md`（Workerデプロイ / whisper.cpp応急修理 / Expo録音PoC / iOS調査）
+- **Phase R0 夜間作業実施（2026-07-03深夜）**: Bamiの明示指示により **Claude Code が例外的に実装を担当**（通常はCodex。CLAUDE.mdの例外規定に基づく記録）
+  - Scope B: whisper.cpp修理 **完了・受け入れ合格**。真の原因は spawn の**30分固定タイムアウト**（メモリ枯渇ではない）。チャンク分割+ストール検知に置換。失敗していた66分実録音×large-v3が完走（54分・タイムスタンプ実長一致）、3.5時間実録音×tinyも13分で完走
+  - Scope A: **Workerデプロイ完了（2026-07-03朝）**。本番URL `https://voicescope.voicescope.workers.dev`、KV作り直し（旧IDは実在せず）、スモーク全通過。残: .envのDEEPGRAM/GEMINIキー記入→deploy.ps1再実行、Electron E2Eはv0.18.1ビルド後
+  - Scope C: Expo録音PoC雛形完成（実行場所は `C:\projects\voicescape-poc\expo-recorder`、NAS上でのnpm禁止）
+  - Scope D: iOS調査完了（EAS BuildでMac不要、Apple Developer $99/年がR1前に必要）
+  - 結果詳細: `docs/poc-r0-results.md`
+- **E2Eで発覚した2バグを修正（v0.18.2、2026-07-03夕）**: ①再文字起こしがHTTP同期実行で終端ステータスに到達せずUIが永遠に待つ→バックグラウンドパイプライン化 ②Ollama要約の空応答=thinkingモデルの思考が生成予算を食い潰し+num_ctx 4096で長文切り捨て→/api/chat・think:false・num_ctx自動設定に変更。26,000字×26Bで33秒要約を実証。詳細は state/claude_log.md
+- TBD: Bamiの日常スマホ機種（R1主ターゲット判定用）
+
+## 最終更新: 2026-07-03

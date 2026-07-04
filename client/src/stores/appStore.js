@@ -42,4 +42,31 @@ export const useAppStore = create((set) => ({
     highlights: [...s.highlights, { timestamp, label }],
   })),
   clearHighlights: () => set({ highlights: [] }),
+
+  // In-flight infographic generations, keyed by recordingId.
+  // Value is a count of pending generations on that recording. The gallery
+  // uses this to show "生成中..." placeholder cards, and the dashboard uses
+  // it to show a pulsing badge.
+  pendingInfographics: {}, // { [recordingId]: { count, startedAt } }
+  startInfographicGeneration: (recordingId) => set((s) => {
+    const cur = s.pendingInfographics[recordingId] || { count: 0, startedAt: null };
+    return {
+      pendingInfographics: {
+        ...s.pendingInfographics,
+        [recordingId]: { count: cur.count + 1, startedAt: cur.startedAt || Date.now() },
+      },
+    };
+  }),
+  endInfographicGeneration: (recordingId) => set((s) => {
+    const cur = s.pendingInfographics[recordingId];
+    if (!cur) return s;
+    const nextCount = Math.max(0, cur.count - 1);
+    const next = { ...s.pendingInfographics };
+    if (nextCount === 0) {
+      delete next[recordingId];
+    } else {
+      next[recordingId] = { ...cur, count: nextCount };
+    }
+    return { pendingInfographics: next };
+  }),
 }));
