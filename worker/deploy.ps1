@@ -1,5 +1,5 @@
 # VoiceScope Worker one-shot deploy script (PowerShell 5.1 compatible)
-# Usage:  cd Z:\projects\voicescape\worker ; .\deploy.ps1
+# Usage: run .\deploy.ps1 from any location; the script resolves its own directory.
 # - Logs into Cloudflare if needed (browser opens once — click Approve)
 # - Sets secrets from ..\.env without echoing values
 # - Seeds activation codes, deploys, and runs smoke tests
